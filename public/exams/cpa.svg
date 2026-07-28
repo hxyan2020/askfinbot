@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <rect width="64" height="64" rx="14" fill="#1A2F4A"/>
+  <rect x="18" y="14" width="28" height="30" rx="2" fill="#F5F0E8"/>
+  <path d="M24 22 H40 M24 28 H40 M24 34 H34" stroke="#0B1F3A" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="40" cy="40" r="8" fill="#C9A227"/>
+  <path d="M37 40 L39.5 42.5 L44 37" stroke="#0B1F3A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="32" y="58" text-anchor="middle" fill="#F5F0E8" font-family="Arial,sans-serif" font-size="8" font-weight="700">CPA</text>
+</svg>

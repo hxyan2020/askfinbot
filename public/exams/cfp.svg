@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <rect width="64" height="64" rx="14" fill="#0E3D2E"/>
+  <path d="M18 34 L32 16 L46 34 Z" fill="#3D8B6E"/>
+  <rect x="22" y="34" width="20" height="12" fill="#2A6B52"/>
+  <path d="M26 42 V36 H30 V42 M34 42 V32 H38 V42" stroke="#C9E8D8" stroke-width="1.8"/>
+  <text x="32" y="58" text-anchor="middle" fill="#E8F5EE" font-family="Arial,sans-serif" font-size="8" font-weight="700">CFP</text>
+</svg>

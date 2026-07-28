@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <rect width="64" height="64" rx="14" fill="#0B2A4A"/>
+  <rect x="16" y="26" width="8" height="18" fill="#4A90C2"/>
+  <rect x="28" y="18" width="8" height="26" fill="#6BB0E0"/>
+  <rect x="40" y="22" width="8" height="22" fill="#4A90C2"/>
+  <path d="M14 44 H50" stroke="#C9A227" stroke-width="2.5" stroke-linecap="round"/>
+  <text x="32" y="58" text-anchor="middle" fill="#E8F0F8" font-family="Arial,sans-serif" font-size="8" font-weight="700">SIE</text>
+</svg>

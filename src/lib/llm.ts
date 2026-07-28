@@ -13,6 +13,7 @@ interface GenerateReplyParams {
   topics: string[];
   messages: ChatMessage[];
   userMessage: string;
+  ragContext?: string;
 }
 
 export async function generateReply({
@@ -22,14 +23,33 @@ export async function generateReply({
   topics,
   messages,
   userMessage,
-}: GenerateReplyParams): Promise<string> {
-  const systemPrompt = buildSystemPrompt(examName, examFullName, topics, provider);
+  ragContext,
+}: GenerateReplyParams): Promise<{ reply: string; providerUsed: LLMProvider; fellBack: boolean }> {
+  const makePrompt = (p: LLMProvider) => {
+    let systemPrompt = buildSystemPrompt(examName, examFullName, topics, p);
+    if (ragContext?.trim()) {
+      systemPrompt += `\n\nUse the following retrieved excerpts from uploaded textbooks/test banks as primary evidence. Prefer these materials when answering. If they are insufficient, you may use general ${examName} knowledge and note uncertainty.\n\n${ragContext}`;
+    }
+    return systemPrompt;
+  };
 
   if (provider === "deepseek") {
-    return callDeepSeek(systemPrompt, messages, userMessage);
+    const reply = await callDeepSeek(makePrompt("deepseek"), messages, userMessage);
+    return { reply, providerUsed: "deepseek", fellBack: false };
   }
 
-  return callGemini(systemPrompt, messages, userMessage);
+  try {
+    const reply = await callGemini(makePrompt("gemini"), messages, userMessage);
+    return { reply, providerUsed: "gemini", fellBack: false };
+  } catch (error) {
+    if (!process.env.DEEPSEEK_API_KEY) {
+      throw error;
+    }
+    // Fall back on any Gemini failure (regional blocks, quota, outages, network).
+    console.warn("Gemini failed; falling back to DeepSeek:", error instanceof Error ? error.message : error);
+    const reply = await callDeepSeek(makePrompt("deepseek"), messages, userMessage);
+    return { reply, providerUsed: "deepseek", fellBack: true };
+  }
 }
 
 async function callGemini(
@@ -51,7 +71,7 @@ async function callGemini(
   ];
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -60,7 +80,7 @@ async function callGemini(
         contents,
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 1024,
+          maxOutputTokens: 1800,
         },
       }),
     }
@@ -108,7 +128,7 @@ async function callDeepSeek(
         { role: "user", content: userMessage },
       ],
       temperature: 0.7,
-      max_tokens: 1024,
+      max_tokens: 1800,
     }),
   });
 

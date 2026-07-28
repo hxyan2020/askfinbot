@@ -1,15 +1,15 @@
-# AskFinBot
+# AskFinBots
 
 AI-powered tutoring for top financial qualification exams.
 
-**Website:** [www.askfinbot.com](https://www.askfinbot.com)
+**Website:** [www.askfinbots.com](https://www.askfinbots.com)
 
 ## Features
 
 - **10 financial qualification exams:** CFA, FRM, CPA, ACCA, CAIA, CFP, SIE, CIMA, CMT, CFA ESG
 - **AI chatbot** with exam-focused answers
-- **Gemini** (default) and **DeepSeek** (中文 alternative) LLM providers
-- **7 free tokens** per user (stored in browser localStorage)
+- **Gemini** (default) and **DeepSeek** LLM providers, with automatic DeepSeek fallback for mainland China / Gemini outages
+- **50 free tokens** for each new user account
 - **Token top-up** via Telegram customer service
 - **Content moderation:** gently rejects irrelevant questions and profanity
 - **Classic glow UI** with gold-on-navy aesthetic

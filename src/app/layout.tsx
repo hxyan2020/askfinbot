@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
-import { Inter, Playfair_Display } from "next/font/google";
+import { Fraunces, Source_Sans_3 } from "next/font/google";
+import "katex/dist/katex.min.css";
 import "./globals.css";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
 
-const inter = Inter({
-  variable: "--font-inter",
+const sourceSans = Source_Sans_3({
+  variable: "--font-source",
   subsets: ["latin"],
 });
 
-const playfair = Playfair_Display({
-  variable: "--font-playfair",
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
   subsets: ["latin"],
 });
 
@@ -19,8 +20,13 @@ export const metadata: Metadata = {
     template: `%s | ${SITE_NAME}`,
   },
   description:
-    "AskFinBot helps you prepare for top financial qualification exams — CFA, FRM, CPA, ACCA, and more. AI-powered study chat with 7 free tokens.",
+    "AskFinBots helps you prepare for top financial qualification exams — CFA, FRM, CPA, ACCA, and more. AI-powered study chat with 50 free tokens.",
   metadataBase: new URL(SITE_URL),
+  icons: {
+    icon: [{ url: "/logo.png", type: "image/png" }],
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
   openGraph: {
     title: `${SITE_NAME} — AI Financial Exam Tutor`,
     description:
@@ -28,6 +34,7 @@ export const metadata: Metadata = {
     url: SITE_URL,
     siteName: SITE_NAME,
     type: "website",
+    images: [{ url: "/logo.png" }],
   },
 };
 
@@ -37,7 +44,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${playfair.variable} h-full`}>
+    <html lang="en" className={`${sourceSans.variable} ${fraunces.variable} h-full`}>
       <body className="flex min-h-full flex-col antialiased">{children}</body>
     </html>
   );

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <rect width="64" height="64" rx="14" fill="#1B3A4B"/>
+  <path d="M32 10 L48 18 V32 C48 42 40 48 32 52 C24 48 16 42 16 32 V18 Z" fill="#2E6B7A" stroke="#7EC8D4" stroke-width="2"/>
+  <path d="M22 32 Q32 22 42 32" stroke="#E8F4F6" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <text x="32" y="58" text-anchor="middle" fill="#E8F4F6" font-family="Arial,sans-serif" font-size="8" font-weight="700">FRM</text>
+</svg>

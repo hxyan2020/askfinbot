@@ -3,12 +3,21 @@ import { SITE_NAME, SITE_URL, TELEGRAM_URL } from "@/lib/constants";
 
 export function Footer() {
   return (
-    <footer className="mt-auto border-t border-gold/15 bg-navy-dark/80">
-      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 text-center text-sm text-gold/50 sm:flex-row sm:text-left">
-        <p>
-          &copy; {new Date().getFullYear()} {SITE_NAME}. All rights reserved.
+    <footer className="mt-auto border-t border-line bg-white/70">
+      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-5 px-4 py-6 text-center text-sm text-muted sm:flex-row sm:py-8 sm:text-left">
+        <p className="max-w-sm text-xs leading-relaxed sm:text-sm">
+          &copy; {new Date().getFullYear()} {SITE_NAME}. Study support only — not official exam material.
         </p>
-        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
+        <div className="grid w-full max-w-sm grid-cols-2 items-center gap-x-6 gap-y-3 sm:flex sm:w-auto sm:max-w-none sm:flex-wrap sm:justify-center sm:gap-6">
+          <Link href="/about" className="footer-link">
+            About
+          </Link>
+          <Link href="/study" className="footer-link">
+            Study Path
+          </Link>
+          <Link href="/flashcards" className="footer-link">
+            Flashcards
+          </Link>
           <Link href="/terms" className="footer-link">
             Terms of Use
           </Link>
@@ -18,7 +27,7 @@ export function Footer() {
           <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="footer-link">
             Telegram Support
           </a>
-          <span className="text-gold/30">{SITE_URL.replace("https://", "")}</span>
+          <span className="col-span-2 text-slate-400 sm:col-auto">{SITE_URL.replace("https://", "")}</span>
         </div>
       </div>
     </footer>

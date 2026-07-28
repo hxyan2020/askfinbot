@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <rect width="64" height="64" rx="14" fill="#3A1A0B"/>
+  <circle cx="32" cy="26" r="14" stroke="#E8B88A" stroke-width="2.5" fill="#5A2E18"/>
+  <path d="M32 26 L32 16 M32 26 L40 32" stroke="#F5D0B0" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="32" cy="26" r="3" fill="#C9A227"/>
+  <text x="32" y="56" text-anchor="middle" fill="#F5E6D8" font-family="Arial,sans-serif" font-size="8" font-weight="700">CIMA</text>
+</svg>

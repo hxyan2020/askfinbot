@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <rect width="64" height="64" rx="14" fill="#2C1A4A"/>
+  <polygon points="32,10 48,26 32,42 16,26" fill="#6B4C9A" stroke="#D4C0F0" stroke-width="2"/>
+  <circle cx="32" cy="26" r="5" fill="#C9A227"/>
+  <text x="32" y="56" text-anchor="middle" fill="#F0E8FF" font-family="Arial,sans-serif" font-size="8" font-weight="700">CAIA</text>
+</svg>

@@ -1,6 +1,7 @@
 "use client";
 
 import { FINANCIAL_EXAMS, type FinancialExam } from "@/lib/exams";
+import { ExamLogo } from "./ExamLogo";
 
 interface ExamSelectorProps {
   selectedExamId: string | null;
@@ -9,12 +10,10 @@ interface ExamSelectorProps {
 
 export function ExamSelector({ selectedExamId, onSelect }: ExamSelectorProps) {
   return (
-    <section className="glow-card p-5 sm:p-6">
-      <h2 className="font-display mb-1 text-lg font-semibold text-gold glow-text-sm">
-        Choose Your Exam
-      </h2>
-      <p className="mb-5 text-sm text-gold/60">
-        Select a financial qualification to begin your study session.
+    <section className="surface-card p-5 sm:p-6">
+      <h2 className="font-display text-lg font-semibold text-navy">1. Choose your exam</h2>
+      <p className="mb-5 mt-1 text-sm text-muted">
+        Pick one qualification. Your chat stays focused on that syllabus.
       </p>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {FINANCIAL_EXAMS.map((exam) => {
@@ -27,8 +26,9 @@ export function ExamSelector({ selectedExamId, onSelect }: ExamSelectorProps) {
               className={`exam-chip ${isSelected ? "exam-chip-selected" : ""}`}
               title={exam.fullName}
             >
-              <span className="block text-base font-semibold">{exam.name}</span>
-              <span className="mt-0.5 block text-[10px] leading-tight text-gold/50 line-clamp-2">
+              <ExamLogo src={exam.logo} alt={`${exam.name} logo`} size={40} />
+              <span className="mt-2 block text-base font-semibold text-navy">{exam.name}</span>
+              <span className="mt-0.5 block text-[10px] leading-tight text-muted line-clamp-2">
                 {exam.fullName}
               </span>
             </button>
