@@ -1,9 +1,14 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import type { CoursewareDepth, SyllabusCurrency } from "@/lib/courseware/types";
+import type {
+  CoursewareDepth,
+  CoursewareVisual,
+  SyllabusCurrency,
+} from "@/lib/courseware/types";
 import { SelectionFlashcardToolbar } from "./SelectionFlashcardToolbar";
 import { CoursewareAskBotDock } from "./CoursewareAskBotDock";
+import { CoursewareVisuals } from "./CoursewareVisuals";
 
 export interface CoursewareLessonView {
   id: string;
@@ -15,6 +20,7 @@ export interface CoursewareLessonView {
   formulas?: string[];
   workedExample?: string;
   selfCheck: string[];
+  visuals?: CoursewareVisual[];
 }
 
 export interface CoursewareView {
@@ -53,6 +59,7 @@ function Fold({
   title,
   subtitle,
   badge,
+  index,
   open,
   onToggle,
   children,
@@ -61,6 +68,7 @@ function Fold({
   title: string;
   subtitle?: string;
   badge?: string | number;
+  index?: number;
   open: boolean;
   onToggle: (id: FoldId) => void;
   children: ReactNode;
@@ -78,6 +86,11 @@ function Fold({
         <span className="cw-fold-chevron" aria-hidden="true">
           {open ? "▾" : "▸"}
         </span>
+        {index !== undefined && (
+          <span className="cw-fold-index" aria-hidden="true">
+            {index}
+          </span>
+        )}
         <span className="cw-fold-copy">
           <span className="cw-fold-title">{title}</span>
           {subtitle && <span className="cw-fold-sub">{subtitle}</span>}
@@ -96,12 +109,14 @@ function Fold({
 function InnerFold({
   title,
   meta,
+  index,
   open,
   onToggle,
   children,
 }: {
   title: string;
   meta?: string;
+  index?: number;
   open: boolean;
   onToggle: () => void;
   children: ReactNode;
@@ -112,6 +127,11 @@ function InnerFold({
         <span className="cw-fold-chevron cw-fold-chevron-sm" aria-hidden="true">
           {open ? "▾" : "▸"}
         </span>
+        {index !== undefined && (
+          <span className="cw-item-index" aria-hidden="true">
+            {index}
+          </span>
+        )}
         <span className="cw-lesson-title">{title}</span>
         {meta && <span className="cw-lesson-time">{meta}</span>}
       </button>
@@ -285,7 +305,8 @@ export function CoursewareModal({
 
               <Fold
                 id="syllabus"
-                title="1. Syllabus map"
+                index={1}
+                title="Syllabus map"
                 subtitle="Official topic areas and weightings for this module"
                 badge={data.syllabusAreas.length}
                 open={isOpen("syllabus")}
@@ -317,7 +338,8 @@ export function CoursewareModal({
 
               <Fold
                 id="lessons"
-                title="2. Lessons"
+                index={2}
+                title="Lessons"
                 subtitle="Concrete study notes, key points, formulas and self-checks"
                 badge={data.lessons.length}
                 open={isOpen("lessons")}
@@ -327,7 +349,8 @@ export function CoursewareModal({
                   {data.lessons.map((ls, i) => (
                     <InnerFold
                       key={ls.id}
-                      title={`${i + 1}. ${ls.title}`}
+                      index={i + 1}
+                      title={ls.title}
                       meta={`${ls.durationMinutes}m`}
                       open={openLesson === ls.id}
                       onToggle={() => setOpenLesson(openLesson === ls.id ? null : ls.id)}
@@ -342,6 +365,7 @@ export function CoursewareModal({
                           ))}
                         </>
                       )}
+                      <CoursewareVisuals visuals={ls.visuals} placement="after-body" />
                       <p className="cw-label">Objectives</p>
                       <ul className="cw-ul">
                         {ls.objectives.map((o) => (
@@ -354,6 +378,7 @@ export function CoursewareModal({
                           <li key={k}>{k}</li>
                         ))}
                       </ul>
+                      <CoursewareVisuals visuals={ls.visuals} placement="after-key-points" />
                       {ls.formulas && ls.formulas.length > 0 && (
                         <>
                           <p className="cw-label">Formulas & frameworks</p>
@@ -364,12 +389,14 @@ export function CoursewareModal({
                           </ul>
                         </>
                       )}
+                      <CoursewareVisuals visuals={ls.visuals} placement="after-formulas" />
                       {ls.workedExample && (
                         <>
                           <p className="cw-label">Worked example</p>
                           <p className="cw-example">{ls.workedExample}</p>
                         </>
                       )}
+                      <CoursewareVisuals visuals={ls.visuals} placement="before-self-check" />
                       <p className="cw-label">Self-check</p>
                       <ul className="cw-ul cw-check">
                         {ls.selfCheck.map((c) => (
@@ -395,7 +422,8 @@ export function CoursewareModal({
               {data.depth && (
                 <Fold
                   id="exam-focus"
-                  title="3. What the exam tests"
+                  index={3}
+                  title="What the exam tests"
                   subtitle="Critical test points and the scoring blueprint"
                   badge={data.depth.testPoints.length}
                   open={isOpen("exam-focus")}
@@ -409,7 +437,8 @@ export function CoursewareModal({
                     {data.depth.testPoints.map((point, index) => (
                       <InnerFold
                         key={point.id}
-                        title={`${index + 1}. ${point.title}`}
+                        index={index + 1}
+                        title={point.title}
                         meta={`${point.priority} priority`}
                         open={openTestPoint === point.id}
                         onToggle={() =>
@@ -470,7 +499,8 @@ export function CoursewareModal({
               {data.depth && (
                 <Fold
                   id="study-notes"
-                  title="4. Deep study notes"
+                  index={4}
+                  title="Deep study notes"
                   subtitle="Exam-calibrated explanations, rules and worked problems"
                   badge={data.depth.studyNotes.length}
                   open={isOpen("study-notes")}
@@ -480,7 +510,8 @@ export function CoursewareModal({
                     {data.depth.studyNotes.map((note, index) => (
                       <InnerFold
                         key={note.id}
-                        title={`${index + 1}. ${note.title}`}
+                        index={index + 1}
+                        title={note.title}
                         meta={note.testPointIds.join(" · ")}
                         open={openStudyNote === note.id}
                         onToggle={() =>
@@ -492,6 +523,7 @@ export function CoursewareModal({
                             {paragraph}
                           </p>
                         ))}
+                        <CoursewareVisuals visuals={note.visuals} placement="after-body" />
                         <p className="cw-label">Rules that score</p>
                         <ul className="cw-ul">
                           {note.keyRules.map((rule) => (
@@ -508,6 +540,7 @@ export function CoursewareModal({
                             </div>
                           </>
                         )}
+                        <CoursewareVisuals visuals={note.visuals} placement="after-formulas" />
                         {note.workedProblem && (
                           <div className="cw-worked">
                             <p className="cw-label">Worked exam problem</p>
@@ -535,7 +568,8 @@ export function CoursewareModal({
               {data.depth && (
                 <Fold
                   id="practice"
-                  title="5. Exam practice"
+                  index={5}
+                  title="Exam practice"
                   subtitle="Full questions with answer plans, model answers and marking"
                   badge={data.depth.examPractice.length}
                   open={isOpen("practice")}
@@ -573,7 +607,8 @@ export function CoursewareModal({
 
               <Fold
                 id="toolkit"
-                title="6. Exam toolkit"
+                index={6}
+                title="Exam toolkit"
                 subtitle="Formulas, traps, technique and a practice plan"
                 open={isOpen("toolkit")}
                 onToggle={toggleFold}
@@ -616,7 +651,8 @@ export function CoursewareModal({
 
               <Fold
                 id="brief"
-                title="7. Module brief & further reading"
+                index={7}
+                title="Module brief & further reading"
                 subtitle="Overview, learning outcomes and references"
                 open={isOpen("brief")}
                 onToggle={toggleFold}

@@ -19,6 +19,7 @@ type PublicUser = {
   name: string;
   examId: string | null;
   tokens: number;
+  unlimitedTokens?: boolean;
   membership?: {
     status: "none" | "active" | "canceling";
     packageId: string | null;
@@ -612,7 +613,9 @@ export default function ProfilePage() {
                 <div className="flex flex-wrap items-end justify-between gap-3">
                   <div>
                     <p className="text-sm text-muted">Current token balance</p>
-                    <p className="font-display text-3xl font-semibold text-navy">{user.tokens}</p>
+                    <p className="font-display text-3xl font-semibold text-navy">
+                      {user.unlimitedTokens ? "Unlimited" : user.tokens}
+                    </p>
                   </div>
                   <Link href="/cart" className="admin-btn">
                     Compare plans and order

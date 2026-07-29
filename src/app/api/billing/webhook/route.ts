@@ -45,8 +45,12 @@ async function fulfillCheckout(session: Stripe.Checkout.Session, eventId: string
   const subscriptionId = idOf(session.subscription);
 
   if (purchase.status !== "paid") {
+    const expected =
+      Number(session.metadata?.expectedAmountCents) || purchase.amountCents;
+    const paidTotal = session.amount_total ?? 0;
+    // Allow exact match or discounted totals (promo / Stripe coupons), including $0.
     if (
-      session.amount_total !== purchase.amountCents ||
+      paidTotal > expected ||
       session.currency?.toLowerCase() !== purchase.currency.toLowerCase()
     ) {
       throw new Error("Checkout amount does not match the order.");

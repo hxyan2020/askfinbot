@@ -23,6 +23,11 @@ export interface UserRecord {
   membershipPackageName?: string | null;
   membershipRenewsAt?: string | null;
   membershipCancelAtPeriodEnd?: boolean;
+  /** Promo-granted unlimited answers while membership is active */
+  unlimitedTokens?: boolean;
+  /** When true, expired promo unlimited membership auto-extends forever */
+  promoUnlimitedAutoRenew?: boolean;
+  promoCodeId?: string | null;
   creditedPurchaseIds?: string[];
   resetTokenHash?: string | null;
   resetTokenExpiresAt?: string | null;
@@ -34,6 +39,7 @@ export type PublicUser = {
   name: string;
   examId: string | null;
   tokens: number;
+  unlimitedTokens: boolean;
   membership: MembershipSnapshot;
 };
 
@@ -97,13 +103,20 @@ function membershipOf(user: UserRecord): MembershipSnapshot {
   };
 }
 
+function hasActiveUnlimited(user: UserRecord): boolean {
+  const membership = membershipOf(user);
+  return Boolean(user.unlimitedTokens && membership.status !== "none");
+}
+
 function toPublic(user: UserRecord): PublicUser {
+  const unlimited = hasActiveUnlimited(user);
   return {
     id: user.id,
     email: user.email,
     name: user.name,
     examId: user.examId,
-    tokens: user.tokens,
+    tokens: unlimited ? Math.max(user.tokens, 999999) : user.tokens,
+    unlimitedTokens: unlimited,
     membership: membershipOf(user),
   };
 }
@@ -190,7 +203,12 @@ export async function updateUser(
 export async function consumeToken(userId: string): Promise<PublicUser | null> {
   return mutateUsers((users) => {
     const idx = users.findIndex((u) => u.id === userId);
-    if (idx < 0 || users[idx].tokens <= 0) return null;
+    if (idx < 0) return null;
+    if (hasActiveUnlimited(users[idx])) {
+      users[idx].updatedAt = new Date().toISOString();
+      return toPublic(users[idx]);
+    }
+    if (users[idx].tokens <= 0) return null;
     users[idx] = {
       ...users[idx],
       tokens: users[idx].tokens - 1,
@@ -204,6 +222,9 @@ export async function refundToken(userId: string): Promise<PublicUser | null> {
   return mutateUsers((users) => {
     const idx = users.findIndex((u) => u.id === userId);
     if (idx < 0) return null;
+    if (hasActiveUnlimited(users[idx])) {
+      return toPublic(users[idx]);
+    }
     users[idx].tokens += 1;
     users[idx].updatedAt = new Date().toISOString();
     return toPublic(users[idx]);
@@ -239,6 +260,9 @@ export async function activateMembership(input: {
   stripeCustomerId?: string;
   stripeSubscriptionId?: string;
   renewsFrom?: string;
+  unlimitedTokens?: boolean;
+  promoUnlimitedAutoRenew?: boolean;
+  promoCodeId?: string | null;
 }): Promise<PublicUser | null> {
   return mutateUsers((users) => {
     const idx = users.findIndex((u) => u.id === input.userId);
@@ -250,8 +274,92 @@ export async function activateMembership(input: {
     users[idx].membershipCancelAtPeriodEnd = false;
     if (input.stripeCustomerId) users[idx].stripeCustomerId = input.stripeCustomerId;
     if (input.stripeSubscriptionId) users[idx].stripeSubscriptionId = input.stripeSubscriptionId;
+    if (input.unlimitedTokens !== undefined) {
+      users[idx].unlimitedTokens = input.unlimitedTokens;
+    } else if (input.packageId !== "promo-unlimited") {
+      // Paid plans replace promo unlimited
+      users[idx].unlimitedTokens = false;
+      users[idx].promoUnlimitedAutoRenew = false;
+    }
+    if (input.promoUnlimitedAutoRenew !== undefined) {
+      users[idx].promoUnlimitedAutoRenew = input.promoUnlimitedAutoRenew;
+    }
+    if (input.promoCodeId !== undefined) {
+      users[idx].promoCodeId = input.promoCodeId;
+    }
     users[idx].updatedAt = new Date().toISOString();
     return toPublic(users[idx]);
+  });
+}
+
+/**
+ * Grant 100% promo: unlimited tokens for one month, auto-renewing forever
+ * until the user cancels membership at period end.
+ */
+export async function grantPromoUnlimited(input: {
+  userId: string;
+  promoCodeId: string;
+  packageName?: string;
+}): Promise<PublicUser | null> {
+  return activateMembership({
+    userId: input.userId,
+    packageId: "promo-unlimited",
+    packageName: input.packageName || "Unlimited (promo)",
+    unlimitedTokens: true,
+    promoUnlimitedAutoRenew: true,
+    promoCodeId: input.promoCodeId,
+  });
+}
+
+/**
+ * If a promo-unlimited membership expired and auto-renew is on (and not canceling),
+ * extend another month. Call on session/chat so renewals need no payment page.
+ */
+export async function ensurePromoUnlimitedRenewal(
+  userId: string
+): Promise<PublicUser | null> {
+  return mutateUsers((users) => {
+    const idx = users.findIndex((u) => u.id === userId);
+    if (idx < 0) return null;
+    const user = users[idx];
+    if (!user.promoUnlimitedAutoRenew || !user.unlimitedTokens) {
+      return toPublic(user);
+    }
+    if (user.membershipCancelAtPeriodEnd) {
+      // Let period end naturally; clear unlimited when expired
+      const renewsAt = user.membershipRenewsAt;
+      if (renewsAt && new Date(renewsAt).getTime() <= Date.now()) {
+        user.unlimitedTokens = false;
+        user.promoUnlimitedAutoRenew = false;
+        user.membershipPackageId = null;
+        user.membershipPackageName = null;
+        user.membershipRenewsAt = null;
+        user.updatedAt = new Date().toISOString();
+      }
+      return toPublic(user);
+    }
+    const renewsAt = user.membershipRenewsAt;
+    if (!renewsAt) {
+      user.membershipRenewsAt = addOneMonth(new Date().toISOString());
+      user.membershipPackageId = user.membershipPackageId || "promo-unlimited";
+      user.membershipPackageName = user.membershipPackageName || "Unlimited (promo)";
+      user.updatedAt = new Date().toISOString();
+      return toPublic(user);
+    }
+    if (new Date(renewsAt).getTime() > Date.now()) {
+      return toPublic(user);
+    }
+    // Expired — roll forward one month from previous renewsAt (or now if far past)
+    const base =
+      new Date(renewsAt).getTime() > Date.now() - 1000 * 60 * 60 * 24 * 40
+        ? renewsAt
+        : new Date().toISOString();
+    user.membershipRenewsAt = addOneMonth(base);
+    user.membershipPackageId = "promo-unlimited";
+    user.membershipPackageName = user.membershipPackageName || "Unlimited (promo)";
+    user.unlimitedTokens = true;
+    user.updatedAt = new Date().toISOString();
+    return toPublic(user);
   });
 }
 

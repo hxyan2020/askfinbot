@@ -26,7 +26,58 @@ const CHART_WIDTH = 680;
 const CHART_HEIGHT = 340;
 const CHART_PADDING = { left: 60, right: 22, top: 35, bottom: 58 } as const;
 
+/** Pull a chart config out of fenced or raw model output. */
 export function parseConceptChart(value: string): ConceptChartConfig | null {
+  const candidates = chartJsonCandidates(value);
+  for (const candidate of candidates) {
+    const parsed = parseConceptChartObject(candidate);
+    if (parsed) return parsed;
+  }
+  return null;
+}
+
+function chartJsonCandidates(value: string): string[] {
+  const trimmed = value.trim();
+  if (!trimmed) return [];
+  const out: string[] = [trimmed];
+  // Models sometimes wrap JSON in prose or emit a larger object; grab the first {...} blob.
+  const start = trimmed.indexOf("{");
+  const end = trimmed.lastIndexOf("}");
+  if (start >= 0 && end > start) {
+    const slice = trimmed.slice(start, end + 1);
+    if (slice !== trimmed) out.push(slice);
+  }
+  return out;
+}
+
+function normalizeChartPoint(point: unknown): ConceptChartPoint | null {
+  if (Array.isArray(point) && point.length >= 2) {
+    const x = point[0];
+    const y = Number(point[1]);
+    if (
+      (typeof x === "string" || typeof x === "number") &&
+      Number.isFinite(y)
+    ) {
+      return { x, y };
+    }
+    return null;
+  }
+  if (!point || typeof point !== "object") return null;
+  const p = point as { x?: unknown; y?: unknown; label?: unknown };
+  if (
+    (typeof p.x === "string" || typeof p.x === "number") &&
+    Number.isFinite(Number(p.y))
+  ) {
+    return {
+      x: p.x,
+      y: Number(p.y),
+      label: typeof p.label === "string" ? p.label.slice(0, 120) : undefined,
+    };
+  }
+  return null;
+}
+
+function parseConceptChartObject(value: string): ConceptChartConfig | null {
   try {
     const input = JSON.parse(value) as Partial<ConceptChartConfig>;
     if (
@@ -42,18 +93,9 @@ export function parseConceptChart(value: string): ConceptChartConfig | null {
       .map((item) => ({
         name: item.name.slice(0, 80),
         points: item.points
-          .filter(
-            (point) =>
-              point &&
-              (typeof point.x === "string" || typeof point.x === "number") &&
-              Number.isFinite(Number(point.y))
-          )
-          .slice(0, 20)
-          .map((point) => ({
-            x: point.x,
-            y: Number(point.y),
-            label: typeof point.label === "string" ? point.label.slice(0, 120) : undefined,
-          })),
+          .map((point) => normalizeChartPoint(point))
+          .filter((point): point is ConceptChartPoint => point !== null)
+          .slice(0, 20),
       }))
       .filter((item) => item.points.length > 0)
       .slice(0, 5);
@@ -93,7 +135,10 @@ export function InteractiveConceptChart({ config }: { config: ConceptChartConfig
       .filter((series) => !hidden.has(series.index));
     const source = visible.length ? visible : config.series.map((series, index) => ({ ...series, index }));
     const rawX = source.flatMap((series) => series.points.map((point) => point.x));
-    const allNumeric = rawX.every((value) => typeof value === "number");
+    const allNumeric = rawX.every(
+      (value) => typeof value === "number" || (typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value)))
+    );
+    const numericXs = allNumeric ? rawX.map((value) => Number(value)) : [];
     const xValues = Array.from(new Set(rawX.map((value) => String(value))));
     if (allNumeric) xValues.sort((a, b) => Number(a) - Number(b));
     const yValues = source.flatMap((series) => series.points.map((point) => point.y));
@@ -103,14 +148,39 @@ export function InteractiveConceptChart({ config }: { config: ConceptChartConfig
     const yPadding = (yMax - yMin) * 0.08;
     yMin -= yPadding;
     yMax += yPadding;
+
+    let xMin = 0;
+    let xMax = 1;
+    if (allNumeric && numericXs.length) {
+      xMin = Math.min(...numericXs);
+      xMax = Math.max(...numericXs);
+      if (xMin === xMax) {
+        xMin -= 1;
+        xMax += 1;
+      } else {
+        const xPad = (xMax - xMin) * 0.04;
+        xMin -= xPad;
+        xMax += xPad;
+      }
+    }
+
     const xAt = (value: number | string) => {
+      if (allNumeric) {
+        const n = Number(value);
+        return (
+          CHART_PADDING.left +
+          ((n - xMin) / (xMax - xMin)) * plotWidth
+        );
+      }
       const index = Math.max(0, xValues.indexOf(String(value)));
-      return CHART_PADDING.left +
-        (xValues.length === 1 ? plotWidth / 2 : (index / (xValues.length - 1)) * plotWidth);
+      return (
+        CHART_PADDING.left +
+        (xValues.length === 1 ? plotWidth / 2 : (index / (xValues.length - 1)) * plotWidth)
+      );
     };
     const yAt = (value: number) =>
       CHART_PADDING.top + ((yMax - value) / (yMax - yMin)) * plotHeight;
-    return { visible, xValues, yMin, yMax, xAt, yAt };
+    return { visible, xValues, yMin, yMax, xAt, yAt, allNumeric };
   }, [config.series, hidden, plotHeight, plotWidth]);
 
   function toggleSeries(index: number) {

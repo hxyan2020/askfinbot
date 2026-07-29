@@ -10,8 +10,13 @@ export interface PurchaseRecord {
   packageName: string;
   tokens: number;
   amountCents: number;
+  /** Original list price before promo (if discounted) */
+  listAmountCents?: number;
   currency: string;
   status: PurchaseStatus;
+  promoCodeId?: string;
+  promoCode?: string;
+  promoTier?: "percent_20" | "percent_100";
   stripeCheckoutSessionId?: string;
   stripePaymentIntentId?: string;
   stripeCustomerId?: string;
@@ -72,6 +77,10 @@ export async function createPendingPurchase(input: {
   tokens: number;
   amountCents: number;
   currency: string;
+  listAmountCents?: number;
+  promoCodeId?: string;
+  promoCode?: string;
+  promoTier?: "percent_20" | "percent_100";
 }): Promise<PurchaseRecord> {
   const now = new Date().toISOString();
   const purchase: PurchaseRecord = {
@@ -105,10 +114,10 @@ export async function updatePurchase(
 
 export async function markPurchasePaid(input: {
   purchaseId: string;
-  stripeCheckoutSessionId: string;
+  stripeCheckoutSessionId?: string;
   stripePaymentIntentId?: string;
   stripeCustomerId?: string;
-  stripeEventId: string;
+  stripeEventId?: string;
 }): Promise<PurchaseRecord | null> {
   return mutate((items) => {
     const index = items.findIndex((item) => item.id === input.purchaseId);
@@ -118,10 +127,12 @@ export async function markPurchasePaid(input: {
     items[index] = {
       ...items[index],
       status: "paid",
-      stripeCheckoutSessionId: input.stripeCheckoutSessionId,
-      stripePaymentIntentId: input.stripePaymentIntentId,
-      stripeCustomerId: input.stripeCustomerId,
-      stripeEventId: input.stripeEventId,
+      stripeCheckoutSessionId:
+        input.stripeCheckoutSessionId || items[index].stripeCheckoutSessionId,
+      stripePaymentIntentId:
+        input.stripePaymentIntentId || items[index].stripePaymentIntentId,
+      stripeCustomerId: input.stripeCustomerId || items[index].stripeCustomerId,
+      stripeEventId: input.stripeEventId || items[index].stripeEventId || `promo:${now}`,
       paidAt: now,
       updatedAt: now,
     };

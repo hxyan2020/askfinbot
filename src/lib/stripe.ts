@@ -48,3 +48,24 @@ export function getAppUrl(requestUrl?: string): string {
   if (requestUrl) return new URL(requestUrl).origin;
   return "http://localhost:4000";
 }
+
+/** Ensure a forever 20% Stripe coupon exists for app-managed promo codes. */
+export async function ensureStripePercentOffCoupon(
+  percentOff: 20,
+  couponId = "askfinbot_promo_20"
+): Promise<string> {
+  const stripe = getStripe();
+  try {
+    const existing = await stripe.coupons.retrieve(couponId);
+    if (existing.valid) return existing.id;
+  } catch {
+    // create below
+  }
+  const created = await stripe.coupons.create({
+    id: couponId,
+    percent_off: percentOff,
+    duration: "forever",
+    name: `AskFinBots ${percentOff}% promo`,
+  });
+  return created.id;
+}

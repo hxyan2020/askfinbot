@@ -8,7 +8,11 @@ export function lesson(
   keyPoints: string[],
   selfCheck: string[],
   workedExample?: string,
-  extras?: { body?: string[]; formulas?: string[] }
+  extras?: {
+    body?: string[];
+    formulas?: string[];
+    visuals?: import("./types").CoursewareVisual[];
+  }
 ): CoursewareLesson {
   return {
     id,
@@ -20,6 +24,7 @@ export function lesson(
     workedExample,
     body: extras?.body,
     formulas: extras?.formulas,
+    visuals: extras?.visuals,
   };
 }
 

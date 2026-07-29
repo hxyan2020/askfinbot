@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserIdFromCookies } from "@/lib/user-auth";
 import { getPurchaseById } from "@/lib/purchases";
-import { findUserById } from "@/lib/users";
+import { ensurePromoUnlimitedRenewal } from "@/lib/users";
 
 export async function GET(request: NextRequest) {
   const userId = await getSessionUserIdFromCookies();
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   if (!purchase || purchase.userId !== userId) {
     return NextResponse.json({ error: "Order not found." }, { status: 404 });
   }
-  const user = await findUserById(userId);
+  const user = await ensurePromoUnlimitedRenewal(userId);
   return NextResponse.json({
     order: {
       id: purchase.id,
@@ -24,7 +24,9 @@ export async function GET(request: NextRequest) {
       amountCents: purchase.amountCents,
       currency: purchase.currency,
       paidAt: purchase.paidAt,
+      promoTier: purchase.promoTier,
     },
     tokenBalance: user?.tokens ?? 0,
+    unlimitedTokens: user?.unlimitedTokens ?? false,
   });
 }

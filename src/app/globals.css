@@ -840,12 +840,47 @@ body {
   gap: 0.15rem;
 }
 
+/* Layer 1 — section index (distinct from item numbers) */
+.cw-fold-index {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.65rem;
+  height: 1.65rem;
+  padding: 0 0.35rem;
+  border-radius: 6px;
+  background: var(--navy);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
 .cw-fold-title {
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--navy);
+}
+
+/* Layer 2 — item index inside a section */
+.cw-item-index {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.45rem;
+  height: 1.45rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--navy);
+  background: #fff;
+  color: var(--navy);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .cw-fold-sub {
@@ -1075,7 +1110,7 @@ body {
   color: var(--muted);
 }
 .cw-lesson-body {
-  padding: 0.5rem 0.9rem 1rem 3.25rem;
+  padding: 0.5rem 0.9rem 1rem 4.1rem;
   border-top: 1px solid var(--line);
 }
 .cw-label {
@@ -1098,6 +1133,37 @@ body {
 .cw-ask {
   margin-top: 0.9rem;
   font-size: 0.8rem;
+}
+
+.cw-visuals {
+  margin: 0.75rem 0 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.cw-visual {
+  min-width: 0;
+}
+
+.cw-visual .my-4 {
+  margin-top: 0.35rem;
+  margin-bottom: 0.35rem;
+}
+
+.cw-visual-caption {
+  margin: -0.15rem 0 0.25rem;
+  padding: 0 0.15rem;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.cw-visual-formula {
+  padding: 0.65rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #f8fafc;
 }
 
 .cw-grid {

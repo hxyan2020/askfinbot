@@ -13,6 +13,97 @@ export interface CoursewareLesson {
   workedExample?: string;
   /** Questions the learner should be able to answer after the lesson */
   selfCheck: string[];
+  /** Interactive charts, diagrams and flowcharts for this lesson */
+  visuals?: CoursewareVisual[];
+}
+
+/** Interactive teaching visual attached to a lesson or study note. */
+export type CoursewareVisual =
+  | {
+      kind: "concept-chart";
+      id: string;
+      caption?: string;
+      placement?: CoursewareVisualPlacement;
+      chart: CoursewareChartConfig;
+    }
+  | {
+      kind: "concept-chart-ref";
+      id: string;
+      caption?: string;
+      placement?: CoursewareVisualPlacement;
+      libraryId: string;
+      params?: Record<string, number | string>;
+    }
+  | {
+      kind: "diagram";
+      id: string;
+      caption?: string;
+      placement?: CoursewareVisualPlacement;
+      diagram: CoursewareDiagramSpec;
+    }
+  | {
+      kind: "diagram-ref";
+      id: string;
+      caption?: string;
+      placement?: CoursewareVisualPlacement;
+      libraryId: string;
+      params?: Record<string, number | string>;
+    }
+  | {
+      kind: "formula-tex";
+      id: string;
+      caption?: string;
+      placement?: CoursewareVisualPlacement;
+      latex: string;
+      display?: boolean;
+    };
+
+export type CoursewareVisualPlacement =
+  | "after-body"
+  | "after-key-points"
+  | "after-formulas"
+  | "before-self-check";
+
+/** Mirrors InteractiveConceptChart config so courseware stays free of UI imports. */
+export interface CoursewareChartConfig {
+  type: "line" | "bar" | "scatter";
+  title: string;
+  xLabel?: string;
+  yLabel?: string;
+  series: {
+    name: string;
+    points: { x: number | string; y: number; label?: string }[];
+  }[];
+}
+
+export type CoursewareDiagramType =
+  | "flowchart"
+  | "cycle"
+  | "tree"
+  | "waterfall"
+  | "steps";
+
+export interface CoursewareDiagramNode {
+  id: string;
+  label: string;
+  detail?: string;
+  tone?: "navy" | "gold" | "slate" | "green" | "red";
+}
+
+export interface CoursewareDiagramEdge {
+  from: string;
+  to: string;
+  label?: string;
+}
+
+export interface CoursewareDiagramSpec {
+  type: CoursewareDiagramType;
+  title: string;
+  nodes: CoursewareDiagramNode[];
+  edges?: CoursewareDiagramEdge[];
+  /** For waterfall: ordered tranche sizes (relative weights) */
+  weights?: number[];
+  footnote?: string;
 }
 
 export interface SyllabusArea {
@@ -56,6 +147,8 @@ export interface DetailedStudySection {
   keyRules: string[];
   formulas?: string[];
   workedProblem?: WorkedProblem;
+  /** Interactive charts / diagrams for this study note */
+  visuals?: CoursewareVisual[];
 }
 
 export interface ExamPracticeItem {

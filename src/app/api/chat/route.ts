@@ -5,7 +5,11 @@ import { containsProfanity, getProfanityRejection } from "@/lib/moderation";
 import { retrieveContext } from "@/lib/rag/retrieve";
 import type { LLMProvider } from "@/lib/constants";
 import { getSessionUserIdFromCookies } from "@/lib/user-auth";
-import { consumeToken, findUserById, refundToken } from "@/lib/users";
+import {
+  consumeToken,
+  ensurePromoUnlimitedRenewal,
+  refundToken,
+} from "@/lib/users";
 import { ensureRelevantTopicsFooter } from "@/lib/response-topics";
 
 interface ChatRequestBody {
@@ -24,11 +28,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Please log in to use AskFinBots." }, { status: 401 });
     }
 
-    const account = await findUserById(userId);
+    const account = await ensurePromoUnlimitedRenewal(userId);
     if (!account) {
       return NextResponse.json({ error: "Please log in to use AskFinBots." }, { status: 401 });
     }
-    if (account.tokens <= 0) {
+    if (!account.unlimitedTokens && account.tokens <= 0) {
       return NextResponse.json(
         { error: "No tokens remaining. Please top up to continue.", tokens: 0 },
         { status: 402 }

@@ -75,15 +75,28 @@ export const CFA_COURSEWARE: ModuleCourseware[] = [
           "Apply a structured framework to evaluate an ethical dilemma.",
         ],
         [
-          "The Code sets broad principles; the Standards operationalise them.",
-          "A decision framework (identify, consider, decide, act, reflect) reduces bias.",
-          "Ethical conduct protects clients, employers, markets and the profession.",
+          "The Code states six principles (integrity/competence/diligence/respect; client/profession first; independent judgment; encourage ethical practice; promote market integrity; maintain competence) — the Standards operationalise them.",
+          "Ethical decision framework: identify relevant facts → consider stakeholders and applicable Standards → decide and act → reflect on outcomes; use it when no single standard number is obvious.",
+          "Members must follow the stricter of applicable law, regulation, or the Code and Standards (I(A) Knowledge of the Law).",
+          "The Code binds all CFA Institute members and candidates; violation can trigger Professional Conduct Program review regardless of employer policy.",
+          "Level I ethics vignettes often test whether you pick the compliant action, not the harshest-sounding moral lecture.",
         ],
         [
-          "What are the six components of the Code of Ethics?",
-          "Why does CFA Institute promote a framework rather than case memorisation?",
+          "A member's home country allows gifts under $500 but the Standards require disclosure above a de minimis threshold — which rule governs?",
+          "An analyst cannot name the exact Standard number but sees pressure to misstate research — which framework step comes before 'act'?",
         ],
-        "An analyst is pressured by a portfolio manager to soften a negative research note. Using the framework, the analyst separates the client's interest (accurate research) from the employer relationship, concludes that Standard V requires a reasonable and adequate basis, and escalates rather than alters the note."
+        "An analyst is pressured by a portfolio manager to soften a negative research note. Using the framework, the analyst separates the client's interest (accurate research) from the employer relationship, concludes that Standard V(A) requires a reasonable and adequate basis, and escalates rather than alters the note.",
+        {
+          body: [
+            "Memorise the Code as six headline duties and the Standards as numbered rules you can cite in answers. Examiners reward identifying the specific Standard (e.g. V(A) reasonable basis) plus the required conduct — not vague 'be ethical' responses.",
+            "When a vignette spans multiple issues, walk the framework: list facts, map stakeholders (client, employer, market, profession), match each issue to a Standard, then choose the action the Standard requires (disclose, refuse, escalate, document). Reflection is part of the model — skipping straight to 'fire the PM' is usually wrong.",
+            "I(A) is the bridge from the Code to local law: if law is stricter, follow law; if the Code is stricter, follow the Code; if they conflict and you cannot reconcile, do not engage in the conduct and seek compliance guidance.",
+          ],
+          formulas: [
+            "Framework: identify → consider → decide → act → reflect",
+            "Rule of strictness: max(applicable law, Code & Standards)",
+          ],
+        }
       ),
       lesson(
         "cfa-l1-m1-l2",
@@ -94,15 +107,28 @@ export const CFA_COURSEWARE: ModuleCourseware[] = [
           "Apply the material nonpublic information and market manipulation standards.",
         ],
         [
-          "Follow the more strict of local law vs the Code and Standards.",
-          "Independence and objectivity require refusing lavish gifts that could impair judgement.",
-          "The mosaic theory allows combining public and nonmaterial nonpublic information.",
+          "I(A): comply with the strictest of law, regulation, or Code; do not participate in or assist violations.",
+          "I(B): gifts and benefits must not compromise independence/objectivity — disclose and often decline lavish or frequent entertainment from issuers you cover.",
+          "I(C): no misrepresentation of qualifications, services, or performance; distinguish fact from opinion in research.",
+          "II(A): material nonpublic information (MNPI) — no trade or cause others to trade; mosaic theory = public + nonmaterial nonpublic only.",
+          "II(B): market manipulation includes disseminating false/misleading info and transactions that distort price/volume — intent to mislead matters.",
         ],
         [
-          "When may an analyst act on nonpublic information under the mosaic theory?",
-          "How should a member respond to a gift from a company they cover?",
+          "An analyst combines 10-K data with a supplier's nonpublic but immaterial shipment delay — may she change her rating under mosaic theory?",
+          "A covered company offers front-row World Cup tickets — what is the first compliant step under I(B)?",
         ],
-        "A buy-side analyst overhears material nonpublic information in an elevator. Standard II(A) prohibits trading or causing others to trade until the information is public, regardless of how it was obtained."
+        "A buy-side analyst overhears material nonpublic information in an elevator. Standard II(A) prohibits trading or causing others to trade until the information is public, regardless of how it was obtained — accidental receipt does not create an exception.",
+        {
+          body: [
+            "Standard I is about how you present yourself and obey law; Standard II is about market integrity. Trap answers confuse I(C) misrepresentation (lying about credentials or research) with II(B) manipulation (distorting markets).",
+            "MNPI items hinge on materiality and use: if information would likely change an investor's decision and is nonpublic, you cannot trade on it or tip others. Mosaic theory never salvages clearly material nonpublic facts — only immaterial nonpublic pieces combined with public analysis.",
+            "Independence items punish 'accept and say nothing.' Typical scoring path: disclose to employer/compliance, assess whether acceptance is reasonable, decline if it could impair objectivity — especially from covered issuers or during an active mandate.",
+          ],
+          formulas: [
+            "I(A): stricter of law vs Code; I(B): independence/objectivity + gifts",
+            "II(A): no MNPI trading; mosaic = public + nonmaterial nonpublic",
+          ],
+        }
       ),
       lesson(
         "cfa-l1-m1-l3",
@@ -113,15 +139,28 @@ export const CFA_COURSEWARE: ModuleCourseware[] = [
           "Explain obligations around confidentiality, additional compensation and loyalty to employers.",
         ],
         [
-          "Client interests come before employer and personal interests.",
-          "Fair dealing means disseminating recommendations to all clients fairly, not identically.",
-          "Departing employees may not take confidential records or solicit clients while employed.",
+          "III(A): loyalty, prudence, and care — client interests before employer/member; for ERISA and similar, prudence is a legal fiduciary standard.",
+          "III(B): fair dealing — disseminate investment recommendations to clients fairly and timely; not every client gets identical timing/size but no favourites.",
+          "III(C): suitability — know client IPS/risk profile before recommending; update when circumstances change.",
+          "III(E): confidentiality unless law requires disclosure, client permits, or action needed to comply with Standards (e.g. illegal activity).",
+          "IV(A): loyalty to employer — no solicitation of clients/employees before leaving; no taking confidential records (models, client lists); IV(B) disclose all additional compensation that could create conflict.",
         ],
         [
-          "How does fair dealing differ from equal dealing?",
-          "What may a departing employee take with them?",
+          "A broker gives institutional clients the research call 30 minutes before retail — which Standard is most directly violated?",
+          "An PM plans to join a competitor and emails five top clients from her work account while still employed — name two Standards at risk.",
         ],
-        undefined
+        "A wealth manager recommends a high-risk IPO to a retiree with conservative IPS and no ability to bear loss. III(C) suitability fails regardless of commission; correct action is a recommendation aligned with IPS or decline to recommend. Fair dealing (III(B)) is a separate issue from suitability but both may appear in one vignette.",
+        {
+          body: [
+            "Client-duty questions (III) almost always ask you to rank interests: client first, then integrity of markets, then employer, then self. Fair dealing is the classic 'equal vs fair' trap — you may stagger dissemination by client type if everyone gets a fair opportunity, but you cannot systematically favour one group.",
+            "Employer-duty questions (IV) focus on departure and side deals. While employed, you owe loyalty: no competing business, no stealing files, no pre-resignation client poaching. After leaving, you may compete but cannot take property or violate non-solicit agreements where enforceable.",
+            "Confidentiality (III(E)) yields when continuing to stay silent would let the member violate the law or Standards — exam answers often require reporting illegal client conduct to compliance or authorities, not eternal secrecy.",
+          ],
+          formulas: [
+            "III(A) client first | III(B) fair dealing ≠ identical timing",
+            "III(C) IPS/suitability | IV(A) no pre-departure solicitation/records theft",
+          ],
+        }
       ),
       lesson(
         "cfa-l1-m1-l4",
@@ -132,15 +171,28 @@ export const CFA_COURSEWARE: ModuleCourseware[] = [
           "Identify and disclose conflicts of interest and priority-of-transactions rules.",
         ],
         [
-          "Recommendations need a reasonable and adequate basis supported by research.",
-          "Disclose all matters that could impair objectivity, in plain language.",
-          "Client and employer trades take priority over personal (member) trades.",
+          "V(A): diligence and reasonable basis — support recommendations with research appropriate to the call; distinguish fact, opinion, and limitation.",
+          "V(C): retain records supporting investment actions and communications — employer policies govern retention but destruction to hide violations breaches Standards.",
+          "VI(A): disclose conflicts (personal holdings, underwriting, board seats, gifts) to clients, prospects, and employer in plain language.",
+          "VI(B): investment transactions for clients and employers have priority over personal trades; family accounts that are client-like count.",
+          "VII(B): do not overstate CFA credentials — 'CFA charterholder' only after passing all exams and joining; candidates may not imply partial completion as achievement.",
         ],
         [
-          "What must be disclosed under Standard VI(A)?",
-          "How should referral fees be handled?",
+          "An analyst issues a buy without reading the footnotes — which Standard fails first?",
+          "A portfolio manager buys the same stock for her personal account one minute before filling client orders — which Standard applies?",
         ],
-        "A manager holds shares personally and also for clients. Standard VI(B) requires that client orders are filled before the manager's own order for the same security."
+        "A manager holds shares personally and also for clients. Standard VI(B) requires that client orders are filled before the manager's own order for the same security; VI(A) may also require disclosing personal holdings if they could impair objectivity.",
+        {
+          body: [
+            "Research integrity (V) pairs with conflicts (VI) on many item sets: an analyst with a personal position must have a reasonable basis (V(A)), communicate limitations (V(B)), and disclose the conflict (VI(A)) before clients act.",
+            "Priority of transactions (VI(B)) is procedural — clients first, then employer, then personal/family accounts treated like clients. 'I disclosed my trade' does not cure front-running clients.",
+            "Standard VII is meta: conduct as members/candidates and accurate use of the CFA mark. Wrong exam answers include 'CFA Level II certified' or guaranteeing performance because you hold the charter.",
+          ],
+          formulas: [
+            "V(A) reasonable basis | V(C) records",
+            "VI(A) disclose conflicts | VI(B) client trades before personal",
+          ],
+        }
       ),
       lesson(
         "cfa-l1-m1-l5",
@@ -151,15 +203,28 @@ export const CFA_COURSEWARE: ModuleCourseware[] = [
           "Describe the Professional Conduct Program and disciplinary process.",
         ],
         [
-          "GIPS compliance is firm-wide and voluntary but must not be partial.",
-          "Composites group portfolios by strategy to prevent cherry-picking.",
-          "CFA Institute can impose sanctions ranging from private censure to revocation.",
+          "GIPS are voluntary, ethical standards for presenting investment performance — aim is fair comparison and full disclosure, not marketing spin.",
+          "Firms claiming GIPS compliance must do so firm-wide on all discretionary portfolios (with defined exceptions documented) — partial compliance claims are prohibited.",
+          "Composites group portfolios with the same strategy/objective; firm must include all fee-paying discretionary accounts in at least one composite — prevents cherry-picking track records.",
+          "Professional Conduct Program (PCP) investigates alleged Code/Standard violations by members and candidates; sanctions include private censure, suspension, and permanent revocation of membership/charter.",
+          "Members must cooperate with PCP inquiries; retaliating against whistleblowers or hiding records escalates violations.",
         ],
         [
-          "Why must a firm claim GIPS compliance on a firm-wide basis?",
-          "What triggers a Professional Conduct inquiry?",
+          "A firm shows GIPS-compliant returns for its flagship equity fund but not for other discretionary accounts — is this permissible?",
+          "Who may initiate a Professional Conduct investigation — only CFA Institute staff or also member complaints?",
         ],
-        undefined
+        "A firm markets its best-performing composite as 'GIPS compliant' while excluding losing discretionary strategies. That violates the firm-wide, all-composite spirit of GIPS — either include all required portfolios in composites with proper disclosures or do not claim compliance. Ethics questions often pair this with I(C) misrepresentation.",
+        {
+          body: [
+            "GIPS at Level I is principles-plus-mechanics: know why GIPS exist (comparability, transparency), what 'firm-wide' means, and that composites are strategy buckets including all relevant accounts. You rarely calculate GIPS returns on Level I but must spot cherry-picking and improper compliance claims.",
+            "Link GIPS to Standard I(C): overstating performance or selective presentation overlaps misrepresentation. A compliant firm discloses fees, composite definition, and dispersion — it does not pick one winning pool.",
+            "PCP process items test cooperation and seriousness: members submit to jurisdiction by holding the charter; ignoring an inquiry or falsifying evidence is itself a violation. Sanctions are graduated but revocation ends the right to use the CFA designation.",
+          ],
+          formulas: [
+            "GIPS: voluntary | firm-wide claim | composites by strategy",
+            "PCP: investigate → sanction (censure / suspension / revocation)",
+          ],
+        }
       ),
     ],
     frameworksAndFormulas: [

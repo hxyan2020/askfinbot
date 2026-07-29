@@ -26,6 +26,7 @@ type AuthUser = {
   name: string;
   examId: string | null;
   tokens: number;
+  unlimitedTokens?: boolean;
 };
 
 function getInitialProvider(): LLMProvider {
@@ -43,6 +44,7 @@ export function AskFinBotApp() {
   const [selectedExam, setSelectedExam] = useState<FinancialExam | null>(null);
   const [provider, setProvider] = useState<LLMProvider>(getInitialProvider);
   const [tokens, setTokens] = useState(0);
+  const [unlimitedTokens, setUnlimitedTokens] = useState(false);
   const [showExamPicker, setShowExamPicker] = useState(true);
   const [examNotice, setExamNotice] = useState<string | null>(null);
 
@@ -67,6 +69,7 @@ export function AskFinBotApp() {
         if (data.user) {
           setUser(data.user);
           setTokens(data.user.tokens);
+          setUnlimitedTokens(Boolean(data.user.unlimitedTokens));
           if (data.user.examId) {
             const exam = getExamById(data.user.examId);
             if (exam) {
@@ -121,12 +124,13 @@ export function AskFinBotApp() {
   }, [router]);
 
   const handleTokenUsed = useCallback((remaining?: number) => {
+    if (unlimitedTokens) return;
     setTokens((prev) => {
       const next = typeof remaining === "number" ? remaining : Math.max(0, prev - 1);
       if (next <= 0) router.push("/cart");
       return next;
     });
-  }, [router]);
+  }, [router, unlimitedTokens]);
 
   if (!authChecked) {
     return (
@@ -225,7 +229,8 @@ export function AskFinBotApp() {
             <Link href="/study" className="font-medium text-navy underline">
               Study Path
             </Link>{" "}
-            for a full syllabus roadmap. Tokens remaining: {tokens}.
+            for a full syllabus roadmap. Tokens remaining:{" "}
+            {unlimitedTokens ? "Unlimited" : tokens}.
           </p>
         </section>
 
@@ -265,6 +270,7 @@ export function AskFinBotApp() {
             onProviderChange={handleProviderChange}
             onProviderAutoSwitch={handleProviderAutoSwitch}
             tokens={tokens}
+            unlimitedTokens={unlimitedTokens}
             onTokenUsed={handleTokenUsed}
             onTopUp={goToPlans}
           />

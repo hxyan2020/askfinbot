@@ -13,6 +13,7 @@ export function Header() {
   const navItems = [
     { href: "/", label: "Ask Bot" },
     { href: "/study", label: "Study Path" },
+    { href: "/mindmap", label: "Mindmap" },
     { href: "/flashcards", label: "Flashcards" },
     ...(paymentsEnabled ? [{ href: "/cart", label: "Buy Tokens" }] : []),
     { href: "/profile", label: "My Profile" },

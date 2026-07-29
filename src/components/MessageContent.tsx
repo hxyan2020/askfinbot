@@ -7,13 +7,16 @@ import {
   parseConceptChart,
 } from "./InteractiveConceptChart";
 
+const FENCE_PLACEHOLDER = (i: number) => `\u0000FENCE${i}\u0000`;
+
+type FencedBlock = { language: string; body: string };
+
 /** Normalize common LLM LaTeX delimiter variants before parsing. */
 function normalizeMathDelimiters(text: string): string {
   return text
     .replace(/\r\n/g, "\n")
     // Some models emit doubled backslashes in JSON-ish payloads
     .replace(/\\\\([\[\]()])/g, "\\$1")
-    // Convert \[...\] / \(...\) already handled; also accept \( \) with spaces
     .replace(/\\\(\s+/g, "\\(")
     .replace(/\s+\\\)/g, "\\)")
     .replace(/\\\[\s+/g, "\\[")
@@ -36,17 +39,56 @@ function stripOuterMathDelimiters(formula: string): string {
 }
 
 /**
+ * Extract ```fenced``` blocks before math parsing so `$` inside chart JSON
+ * (e.g. "$ million") cannot be mistaken for TeX delimiters.
+ */
+function extractFencedBlocks(text: string): { text: string; fences: FencedBlock[] } {
+  const fences: FencedBlock[] = [];
+  const textOut = text.replace(
+    /```([^\n`]*)\n?([\s\S]*?)```/g,
+    (_full, lang: string, body: string) => {
+      const index = fences.length;
+      fences.push({
+        language: String(lang || "").trim().toLowerCase(),
+        body: body.replace(/\n$/, ""),
+      });
+      return FENCE_PLACEHOLDER(index);
+    }
+  );
+  return { text: textOut, fences };
+}
+
+/**
+ * Recover chart JSON the model emitted without a ```chart fence.
+ */
+function extractBareChartBlocks(
+  text: string,
+  fences: FencedBlock[]
+): string {
+  const pattern =
+    /(^|\n)(\{[ \t]*\n[ \t]*"(?:type|title|series)"[\s\S]*?\n[ \t]*\}|\{[^\n]*"type"\s*:\s*"(?:line|bar|scatter)"[^\n]*\})(?=\n|$)/g;
+
+  return text.replace(pattern, (full, lead: string, json: string) => {
+    if (full.includes("\u0000FENCE")) return full;
+    if (!parseConceptChart(json)) return full;
+    const index = fences.length;
+    fences.push({ language: "chart", body: json });
+    return `${lead}${FENCE_PLACEHOLDER(index)}`;
+  });
+}
+
+/**
  * Split a string into text / inline-math / display-math segments.
- * Handles $...$, $$...$$, \(...\), \[...\] (including multi-line display).
+ * Skips currency-like `$120` / `$ million` (no proper `$...$` pair).
  */
 function splitMathSegments(
   text: string
 ): { type: "text" | "inline" | "display"; value: string }[] {
   const segments: { type: "text" | "inline" | "display"; value: string }[] = [];
-  // Display first (greedy), then inline. Avoid matching empty $$ or lone $.
-  // Order matters: $$ / \[ \] / \( \) before single $.
+  // Single-$ requires non-space after open and before close so
+  // "$ million" / "$120.75M" are left alone.
   const pattern =
-    /(\\\[[\s\S]+?\\\]|\$\$[\s\S]+?\$\$|\\\([\s\S]+?\\\)|\$[^$\n]+?\$)/g;
+    /(\\\[[\s\S]+?\\\]|\$\$[\s\S]+?\$\$|\\\([\s\S]+?\\\)|\$([^\s$](?:[^$\n]*[^\s$])?)\$)/g;
   let last = 0;
   let match: RegExpExecArray | null;
 
@@ -112,7 +154,6 @@ function renderInlineMarkdown(text: string, keyPrefix: string): React.ReactNode[
         </em>
       );
     } else if (token.startsWith("`") && token.endsWith("`")) {
-      // If a "code" span is actually LaTeX, render it as math.
       const inner = token.slice(1, -1).trim();
       if (
         /^(\\\[|\\\(|\$\$|\$)/.test(inner) ||
@@ -165,168 +206,193 @@ function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
   return nodes;
 }
 
-export function MessageContent({ content }: { content: string }) {
-  const normalized = normalizeMathDelimiters(content);
+function renderFencedBlock(fence: FencedBlock, key: string): React.ReactNode {
+  // Prefer chart whenever the body is valid chart JSON, regardless of fence label.
+  const chart = parseConceptChart(fence.body);
+  if (chart) {
+    return <InteractiveConceptChart key={key} config={chart} />;
+  }
 
-  // Pull display-math blocks out first so they never get stuck inside list items.
-  const topSegments = splitMathSegments(normalized);
-  const blocks: React.ReactNode[] = [];
-  let blockKey = 0;
+  if (
+    fence.language === "latex" ||
+    fence.language === "tex" ||
+    fence.language === "math" ||
+    /\\(frac|text|mathbb|sum|int|inf)/.test(fence.body)
+  ) {
+    return (
+      <MathFormula
+        key={key}
+        formula={stripOuterMathDelimiters(fence.body)}
+        display
+      />
+    );
+  }
 
-  for (const seg of topSegments) {
-    if (seg.type === "display") {
-      blocks.push(
-        <MathFormula key={`math-${blockKey++}`} formula={seg.value} display />
-      );
+  return (
+    <pre
+      key={key}
+      className="overflow-x-auto whitespace-pre-wrap rounded-lg bg-black/5 p-3 font-mono text-xs"
+    >
+      {fence.body}
+    </pre>
+  );
+}
+
+function appendTextBlocks(
+  text: string,
+  fences: FencedBlock[],
+  blocks: React.ReactNode[],
+  nextKey: () => number
+) {
+  const pieces: Array<{ kind: "text" | "fence"; value: string; fenceIndex?: number }> =
+    [];
+  let cursor = 0;
+  const re = /\u0000FENCE(\d+)\u0000/g;
+  let ph: RegExpExecArray | null;
+  while ((ph = re.exec(text)) !== null) {
+    if (ph.index > cursor) {
+      pieces.push({ kind: "text", value: text.slice(cursor, ph.index) });
+    }
+    pieces.push({ kind: "fence", value: "", fenceIndex: Number(ph[1]) });
+    cursor = ph.index + ph[0].length;
+  }
+  if (cursor < text.length) pieces.push({ kind: "text", value: text.slice(cursor) });
+
+  for (const piece of pieces) {
+    if (piece.kind === "fence" && piece.fenceIndex !== undefined) {
+      const fence = fences[piece.fenceIndex];
+      if (fence) blocks.push(renderFencedBlock(fence, `fence-${nextKey()}`));
       continue;
     }
-    if (seg.type === "inline") {
-      blocks.push(
-        <p key={`p-${blockKey++}`} className="whitespace-pre-wrap">
-          <MathFormula formula={seg.value} />
-        </p>
-      );
-      continue;
-    }
 
-    const lines = seg.value.split("\n");
-    for (let idx = 0; idx < lines.length; idx += 1) {
-      const line = lines[idx];
-      const trimmed = line.trim();
-
-      if (!trimmed) {
-        blocks.push(<div key={`sp-${blockKey++}`} className="h-1" />);
+    const topSegments = splitMathSegments(piece.value);
+    for (const seg of topSegments) {
+      if (seg.type === "display") {
+        blocks.push(
+          <MathFormula key={`math-${nextKey()}`} formula={seg.value} display />
+        );
         continue;
       }
-
-      const heading = trimmed.match(/^(#{1,6})\s*(.+)$/);
-      if (heading) {
-        const level = heading[1].length;
-        const className =
-          level <= 2
-            ? "mt-3 text-base font-bold text-navy"
-            : "mt-3 text-sm font-bold text-navy";
+      if (seg.type === "inline") {
         blocks.push(
-          <div
-            key={`h-${blockKey++}`}
-            role="heading"
-            aria-level={level}
-            className={className}
-          >
-            {renderInline(heading[2], `h-${blockKey}`)}
-          </div>
+          <p key={`p-${nextKey()}`} className="whitespace-pre-wrap">
+            <MathFormula formula={seg.value} />
+          </p>
         );
         continue;
       }
 
-      if (/^```/.test(trimmed)) {
-        const language = trimmed.slice(3).trim().toLowerCase();
-        const code: string[] = [];
-        while (idx + 1 < lines.length && !/^```/.test(lines[idx + 1].trim())) {
-          code.push(lines[idx + 1]);
-          idx += 1;
+      const lines = seg.value.split("\n");
+      for (let idx = 0; idx < lines.length; idx += 1) {
+        const line = lines[idx];
+        const trimmed = line.trim();
+
+        if (!trimmed) {
+          blocks.push(<div key={`sp-${nextKey()}`} className="h-1" />);
+          continue;
         }
-        if (idx + 1 < lines.length) idx += 1;
-        const joined = code.join("\n");
-        const chart =
-          language === "chart" ? parseConceptChart(joined) : null;
-        if (chart) {
+
+        const heading = trimmed.match(/^(#{1,6})\s*(.+)$/);
+        if (heading) {
+          const level = heading[1].length;
+          const className =
+            level <= 2
+              ? "mt-3 text-base font-bold text-navy"
+              : "mt-3 text-sm font-bold text-navy";
+          const k = nextKey();
           blocks.push(
-            <InteractiveConceptChart key={`chart-${blockKey++}`} config={chart} />
-          );
-        } else if (
-          language === "latex" ||
-          language === "tex" ||
-          language === "math" ||
-          /\\(frac|text|mathbb|sum|int|inf)/.test(joined)
-        ) {
-          blocks.push(
-            <MathFormula
-              key={`math-${blockKey++}`}
-              formula={stripOuterMathDelimiters(joined)}
-              display
-            />
-          );
-        } else {
-          blocks.push(
-            <pre
-              key={`code-${blockKey++}`}
-              className="overflow-x-auto whitespace-pre-wrap rounded-lg bg-black/5 p-3 font-mono text-xs"
+            <div
+              key={`h-${k}`}
+              role="heading"
+              aria-level={level}
+              className={className}
             >
-              {joined}
-            </pre>
+              {renderInline(heading[2], `h-${k}`)}
+            </div>
           );
+          continue;
         }
-        continue;
-      }
 
-      const quote = trimmed.match(/^>\s*(.*)$/);
-      if (quote) {
-        blocks.push(
-          <blockquote
-            key={`q-${blockKey++}`}
-            className="border-l-2 border-navy/30 pl-3 italic text-slate-600"
-          >
-            {renderInline(quote[1], `q-${blockKey}`)}
-          </blockquote>
-        );
-        continue;
-      }
-
-      if (/^[-*+]\s+/.test(trimmed)) {
-        const items: { text: string; index: number }[] = [];
-        while (idx < lines.length) {
-          const item = lines[idx].trim().match(/^[-*+]\s+(.+)$/);
-          if (!item) break;
-          items.push({ text: item[1], index: idx });
-          idx += 1;
+        const quote = trimmed.match(/^>\s*(.*)$/);
+        if (quote) {
+          const k = nextKey();
+          blocks.push(
+            <blockquote
+              key={`q-${k}`}
+              className="border-l-2 border-navy/30 pl-3 italic text-slate-600"
+            >
+              {renderInline(quote[1], `q-${k}`)}
+            </blockquote>
+          );
+          continue;
         }
-        idx -= 1;
-        blocks.push(
-          <ul key={`ul-${blockKey++}`} className="list-disc space-y-1 pl-5">
-            {items.map((item) => (
-              <li key={`uli-${item.index}`}>
-                {renderInline(item.text, `uli-${item.index}`)}
-              </li>
-            ))}
-          </ul>
-        );
-        continue;
-      }
 
-      if (/^\d+[.)]\s+/.test(trimmed)) {
-        const items: { text: string; index: number }[] = [];
-        while (idx < lines.length) {
-          const item = lines[idx].trim().match(/^\d+[.)]\s+(.+)$/);
-          if (!item) break;
-          items.push({ text: item[1], index: idx });
-          idx += 1;
+        if (/^[-*+]\s+/.test(trimmed)) {
+          const items: { text: string; index: number }[] = [];
+          while (idx < lines.length) {
+            const item = lines[idx].trim().match(/^[-*+]\s+(.+)$/);
+            if (!item) break;
+            items.push({ text: item[1], index: idx });
+            idx += 1;
+          }
+          idx -= 1;
+          blocks.push(
+            <ul key={`ul-${nextKey()}`} className="list-disc space-y-1 pl-5">
+              {items.map((item) => (
+                <li key={`uli-${item.index}`}>
+                  {renderInline(item.text, `uli-${item.index}`)}
+                </li>
+              ))}
+            </ul>
+          );
+          continue;
         }
-        idx -= 1;
+
+        if (/^\d+[.)]\s+/.test(trimmed)) {
+          const items: { text: string; index: number }[] = [];
+          while (idx < lines.length) {
+            const item = lines[idx].trim().match(/^\d+[.)]\s+(.+)$/);
+            if (!item) break;
+            items.push({ text: item[1], index: idx });
+            idx += 1;
+          }
+          idx -= 1;
+          blocks.push(
+            <ol key={`ol-${nextKey()}`} className="list-decimal space-y-1 pl-5">
+              {items.map((item) => (
+                <li key={`oli-${item.index}`}>
+                  {renderInline(item.text, `oli-${item.index}`)}
+                </li>
+              ))}
+            </ol>
+          );
+          continue;
+        }
+
+        if (/^([-*_])\1{2,}$/.test(trimmed)) {
+          blocks.push(<hr key={`hr-${nextKey()}`} className="my-3 border-black/10" />);
+          continue;
+        }
+
+        const k = nextKey();
         blocks.push(
-          <ol key={`ol-${blockKey++}`} className="list-decimal space-y-1 pl-5">
-            {items.map((item) => (
-              <li key={`oli-${item.index}`}>
-                {renderInline(item.text, `oli-${item.index}`)}
-              </li>
-            ))}
-          </ol>
+          <p key={`ln-${k}`} className="whitespace-pre-wrap">
+            {renderInline(line, `ln-${k}`)}
+          </p>
         );
-        continue;
       }
-
-      if (/^([-*_])\1{2,}$/.test(trimmed)) {
-        blocks.push(<hr key={`hr-${blockKey++}`} className="my-3 border-black/10" />);
-        continue;
-      }
-
-      blocks.push(
-        <p key={`ln-${blockKey++}`} className="whitespace-pre-wrap">
-          {renderInline(line, `ln-${blockKey}`)}
-        </p>
-      );
     }
   }
+}
+
+export function MessageContent({ content }: { content: string }) {
+  const normalized = normalizeMathDelimiters(content);
+  const { text: afterFences, fences } = extractFencedBlocks(normalized);
+  const text = extractBareChartBlocks(afterFences, fences);
+
+  const blocks: React.ReactNode[] = [];
+  let blockKey = 0;
+  appendTextBlocks(text, fences, blocks, () => blockKey++);
 
   return <div className="space-y-2 text-sm leading-relaxed">{blocks}</div>;
 }

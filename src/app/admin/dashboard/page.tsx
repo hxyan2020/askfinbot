@@ -66,6 +66,21 @@ export default function AdminDashboardPage() {
       {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
 
       <Link
+        href="/admin/promos"
+        className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-emerald-200 bg-emerald-50 p-5 transition hover:border-emerald-400"
+      >
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900">Promo codes</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Create and disable 20% checkout discounts or 100% unlimited grants.
+          </p>
+        </div>
+        <span className="shrink-0 rounded-full bg-emerald-700 px-3 py-1.5 text-xs font-bold text-white">
+          Billing
+        </span>
+      </Link>
+
+      <Link
         href="/admin/mentors"
         className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50 p-5 transition hover:border-amber-400"
       >

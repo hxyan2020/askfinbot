@@ -70,6 +70,8 @@ Response format:
 \`\`\`chart
 {"type":"line","title":"Chart title","xLabel":"Horizontal axis","yLabel":"Vertical axis","series":[{"name":"Series name","points":[{"x":1,"y":2,"label":"Optional explanation"}]}]}
 \`\`\`
+- In chart JSON strings, write currency as "USD" or "million USD" — never use the "$" character (it breaks rendering).
+- Do not put the chart JSON in a normal code block or plain text; always use the \`\`\`chart fence above.
 - Only when the answer substantively teaches exam content, end with the exact heading "### Relevant ${examName} topics".
 - Do not add that topics section for greetings, small talk, thanks, or polite redirects of clearly unrelated questions.
 - Under it, list 1–3 syllabus topics most relevant to the answer. Use the exact topic names from this list: ${topicList}.

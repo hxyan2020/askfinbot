@@ -15,6 +15,9 @@ export function Footer() {
           <Link href="/study" className="footer-link">
             Study Path
           </Link>
+          <Link href="/mindmap" className="footer-link">
+            Mindmap
+          </Link>
           <Link href="/flashcards" className="footer-link">
             Flashcards
           </Link>

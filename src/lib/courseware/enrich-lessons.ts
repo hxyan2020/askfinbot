@@ -4,6 +4,7 @@ import type {
   ModuleCourseware,
   WorkedProblem,
 } from "./types";
+import { matchVisualsForLesson, matchVisualsForText } from "./visuals";
 
 function normalize(text: string): string {
   return text
@@ -104,10 +105,51 @@ function synthesizeWorkedExample(
     check ? `Requirement: ${check}` : `Requirement: apply ${lesson.title} to the supplied facts.`,
     point ? `Key rule: ${point}` : "",
     formula ? `Use: ${formula}` : "",
-    "State the conclusion in the language of the requirement and reject distractors that swap neighbouring concepts.",
+    "State the conclusion in the language of the requirement and refuse distractors that swap neighbouring concepts.",
   ]
     .filter(Boolean)
     .join(" ");
+}
+
+function conceptKey(visualId: string): string {
+  const markers = [
+    "payoff.",
+    "parity.",
+    "portfolio.",
+    "fi.",
+    "risk.",
+    "greeks.",
+    "mgmt.",
+    "hf.",
+    "fx.",
+    "credit.",
+    "esg.",
+    "tech.",
+    "tvm.",
+    "macro.",
+    "formula.",
+    "diagram.",
+  ];
+  for (const marker of markers) {
+    const idx = visualId.indexOf(marker);
+    if (idx >= 0) return visualId.slice(idx);
+  }
+  return visualId;
+}
+
+function mergeVisuals(
+  existing: CoursewareLesson["visuals"] | undefined,
+  auto: CoursewareLesson["visuals"]
+): CoursewareLesson["visuals"] {
+  const merged = [...(existing ?? [])];
+  const seen = new Set(merged.map((v) => conceptKey(v.id)));
+  for (const visual of auto ?? []) {
+    const key = conceptKey(visual.id);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(visual);
+  }
+  return merged.length ? merged : undefined;
 }
 
 /** Merge expert depth + module metadata into richer lesson bodies for the courseware UI. */
@@ -157,6 +199,14 @@ export function enrichModuleLessons(module: ModuleCourseware): ModuleCourseware 
             ])
           ).slice(0, 4);
 
+    const autoVisuals = matchVisualsForLesson(module, {
+      ...lesson,
+      body,
+      formulas,
+      keyPoints,
+    });
+    const visuals = mergeVisuals(lesson.visuals, autoVisuals);
+
     return {
       ...lesson,
       body,
@@ -164,8 +214,29 @@ export function enrichModuleLessons(module: ModuleCourseware): ModuleCourseware 
       formulas: formulas.length ? formulas : undefined,
       workedExample,
       selfCheck,
+      visuals,
     };
   });
 
-  return { ...module, lessons };
+  const studyNotes = notes.map((note) => {
+    if (note.visuals?.length) return note;
+    const auto = matchVisualsForText(
+      note.title,
+      [...note.keyRules, ...(note.formulas ?? [])],
+      note.id,
+      2
+    );
+    return auto.length ? { ...note, visuals: auto } : note;
+  });
+
+  return {
+    ...module,
+    lessons,
+    depth: module.depth
+      ? {
+          ...module.depth,
+          studyNotes,
+        }
+      : module.depth,
+  };
 }

@@ -24,6 +24,7 @@ interface ChatPanelProps {
   onProviderChange: (provider: LLMProvider) => void;
   onProviderAutoSwitch?: (provider: LLMProvider) => void;
   tokens: number;
+  unlimitedTokens?: boolean;
   onTokenUsed: (remaining?: number) => void;
   onTopUp: () => void;
   onRestoreFreeTokens?: () => void;
@@ -56,6 +57,7 @@ export function ChatPanel({
   onProviderChange,
   onProviderAutoSwitch,
   tokens,
+  unlimitedTokens = false,
   onTokenUsed,
   onTopUp,
 }: ChatPanelProps) {
@@ -130,7 +132,7 @@ export function ChatPanel({
       return;
     }
 
-    if (tokens <= 0) {
+    if (!unlimitedTokens && tokens <= 0) {
       onTopUp();
       return;
     }
@@ -260,7 +262,7 @@ export function ChatPanel({
             Flashcards
           </Link>
           <ProviderToggle provider={provider} onChange={onProviderChange} />
-          <TokenBadge tokens={tokens} onTopUp={onTopUp} />
+          <TokenBadge tokens={tokens} unlimited={unlimitedTokens} onTopUp={onTopUp} />
           <button
             type="button"
             className="chat-expand-btn"
@@ -374,7 +376,7 @@ export function ChatPanel({
       )}
 
       <form onSubmit={handleSubmit} className="border-t border-line p-4 sm:p-5">
-        {tokens <= 0 ? (
+        {!unlimitedTokens && tokens <= 0 ? (
           <div className="rounded-xl border border-line bg-slate-50 p-4 text-center">
             <p className="text-sm font-medium text-navy">No tokens left</p>
             <p className="mt-1 text-sm text-muted">

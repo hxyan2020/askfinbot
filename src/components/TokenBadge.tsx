@@ -4,10 +4,24 @@ import { FREE_TOKENS } from "@/lib/constants";
 
 interface TokenBadgeProps {
   tokens: number;
+  unlimited?: boolean;
   onTopUp: () => void;
 }
 
-export function TokenBadge({ tokens, onTopUp }: TokenBadgeProps) {
+export function TokenBadge({ tokens, unlimited, onTopUp }: TokenBadgeProps) {
+  if (unlimited) {
+    return (
+      <div className="token-badge">
+        <div className="flex items-center gap-2">
+          <div>
+            <p className="text-xs text-muted">Access</p>
+            <p className="text-base font-semibold text-navy">Unlimited</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const isLow = tokens <= 2;
   const isEmpty = tokens <= 0;
 

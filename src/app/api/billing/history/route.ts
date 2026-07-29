@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUserIdFromCookies } from "@/lib/user-auth";
 import { getPurchasesForUser } from "@/lib/purchases";
-import { findUserById, toPublic } from "@/lib/users";
+import { ensurePromoUnlimitedRenewal, findUserById } from "@/lib/users";
 import { isStripeCheckoutReady } from "@/lib/stripe";
 import {
   getPreferredCheckoutProvider,
@@ -15,15 +15,16 @@ export async function GET() {
     return NextResponse.json({ error: "Please log in." }, { status: 401 });
   }
 
-  const [purchases, record] = await Promise.all([
+  const [purchases, user, record] = await Promise.all([
     getPurchasesForUser(userId),
+    ensurePromoUnlimitedRenewal(userId),
     findUserById(userId),
   ]);
-  const user = record ? toPublic(record) : null;
   const provider = getPreferredCheckoutProvider();
   return NextResponse.json({
     purchases,
     tokens: user?.tokens ?? 0,
+    unlimitedTokens: user?.unlimitedTokens ?? false,
     membership: user?.membership || {
       status: "none",
       packageId: null,

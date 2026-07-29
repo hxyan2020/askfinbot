@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserIdFromCookies } from "@/lib/user-auth";
 import {
   changePassword,
-  findUserById,
-  toPublic,
+  ensurePromoUnlimitedRenewal,
   updateUser,
 } from "@/lib/users";
 import { getExamById } from "@/lib/exams";
@@ -11,9 +10,9 @@ import { getExamById } from "@/lib/exams";
 export async function GET() {
   const userId = await getSessionUserIdFromCookies();
   if (!userId) return NextResponse.json({ user: null });
-  const user = await findUserById(userId);
+  const user = await ensurePromoUnlimitedRenewal(userId);
   if (!user) return NextResponse.json({ user: null });
-  return NextResponse.json({ user: toPublic(user) });
+  return NextResponse.json({ user });
 }
 
 export async function PUT(request: NextRequest) {
