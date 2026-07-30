@@ -2,15 +2,12 @@ import type { Metadata } from "next";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { TokenCart } from "@/components/TokenCart";
-import { SITE_NAME } from "@/lib/constants";
 import { getSessionUserIdFromCookies } from "@/lib/user-auth";
 import { findUserById } from "@/lib/users";
-import { getPreferredCheckoutProvider } from "@/lib/wise";
+import { getPreferredCheckoutProvider } from "@/lib/payments";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: `Buy Tokens | ${SITE_NAME}`,
-  description: "Compare AskFinBots monthly plans and pay securely via Wise or card checkout.",
-};
+export const metadata: Metadata = buildPageMetadata("cart");
 
 export default async function CartPage() {
   const userId = await getSessionUserIdFromCookies();
@@ -29,9 +26,9 @@ export default async function CartPage() {
             Choose the study capacity you need
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-muted">
-            Monthly plans expire after 1 month and renew automatically unless cancelled in My
-            Profile. After cancellation, membership continues until the current cycle ends. Payments
-            are received via Wise when configured.
+            Monthly token plans for AskFinBots AI tutoring across CFA, FRM, ACCA, CPA and other
+            finance exams. Plans renew automatically unless cancelled in My Profile. Payments are
+            processed securely with Stripe.
           </p>
         </section>
         <TokenCart

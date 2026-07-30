@@ -115,7 +115,7 @@ export function CheckoutSuccess() {
           ? unlimited
             ? "Your promo unlocked unlimited AskFinBots answers for the next month. It renews automatically forever unless you cancel in My Profile."
             : `${order.tokens} tokens have been added to your AskFinBots account. Your plan renews monthly unless cancelled in My Profile; Ask a human mentor stays unlocked for the active membership month.`
-          : "Payment confirmation is in progress. Your tokens will appear automatically—please keep this page open for a moment. If you paid with Wise, include your order reference and allow a short confirmation window."}
+          : "Payment confirmation is in progress. Your tokens will appear automatically once Stripe confirms the payment—please keep this page open for a moment."}
       </p>
       {paid && (unlimited || tokenBalance !== null) && (
         <div className="mt-6 rounded-xl bg-slate-50 p-4">

@@ -3,11 +3,9 @@ import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { SITE_NAME, SITE_URL, TELEGRAM_CONTACT, TELEGRAM_URL } from "@/lib/constants";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: `Terms of Use | ${SITE_NAME}`,
-  description: `Terms of Use for ${SITE_NAME} — AI-powered financial qualification exam tutoring.`,
-};
+export const metadata: Metadata = buildPageMetadata("terms");
 
 export default function TermsPage() {
   return (
@@ -56,8 +54,7 @@ export default function TermsPage() {
               <strong>1 month</strong> and renew automatically unless cancelled in My Profile;
               cancellation stops future renewals while membership continues until the end of the
               current cycle. A paid plan also unlocks Ask a human mentor for the active membership
-              month. Payments are received via Wise Business payment links when configured (or secure
-              card checkout as fallback). Tokens are non-transferable and have no cash value. We
+              month. Payments are processed securely with Stripe Checkout. Tokens are non-transferable and have no cash value. We
               reserve the right to modify token pricing and free token allocations with reasonable
               notice.
             </p>

@@ -4,11 +4,9 @@ import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { SITE_NAME, TELEGRAM_CONTACT, TELEGRAM_URL } from "@/lib/constants";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: `Contact Us | ${SITE_NAME}`,
-  description: `Contact the ${SITE_NAME} team for account support, technical help, feedback, and partnerships.`,
-};
+export const metadata: Metadata = buildPageMetadata("contact");
 
 export default function ContactPage() {
   return (

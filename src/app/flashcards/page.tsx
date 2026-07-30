@@ -4,7 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { FINANCIAL_EXAMS } from "@/lib/exams";
+import {
+  NoQualificationPrompt,
+  SelectedQualificationBanner,
+  readStoredExamId,
+} from "@/components/SelectedQualificationBanner";
+import { getExamById } from "@/lib/exams";
 import { ExamLogo } from "@/components/ExamLogo";
 
 type Flashcard = {
@@ -57,45 +62,38 @@ export default function FlashcardsPage() {
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState("");
 
-  async function load(nextExamId: string) {
-    setError(null);
-    try {
-      const deck = await fetchDeck(nextExamId);
-      setUser(deck.user);
-      setCards(deck.cards);
-      setExamId(deck.examId);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   useEffect(() => {
     let active = true;
-    void fetchDeck("cfa")
-      .then((deck) => {
+    void (async () => {
+      try {
+        const me = await fetch("/api/auth/me").then((response) => response.json());
         if (!active) return;
-        setUser(deck.user);
+        if (!me.user) {
+          setUser(null);
+          return;
+        }
+        const preferred =
+          (me.user.examId && getExamById(me.user.examId) ? me.user.examId : null) ||
+          readStoredExamId();
+        if (!preferred) {
+          setUser(me.user);
+          return;
+        }
+        const deck = await fetchDeck(preferred);
+        if (!active) return;
+        setUser({ ...me.user, examId: me.user.examId || preferred });
         setCards(deck.cards);
         setExamId(deck.examId);
-      })
-      .catch((err) => {
+      } catch (err) {
         if (active) setError(err instanceof Error ? err.message : "Failed to load.");
-      })
-      .finally(() => {
+      } finally {
         if (active) setLoading(false);
-      });
+      }
+    })();
     return () => {
       active = false;
     };
   }, []);
-
-  async function switchExam(id: string) {
-    setLoading(true);
-    setSubjectFilter("all");
-    await load(id);
-  }
 
   async function toggleHighlight(card: Flashcard) {
     const highlighted = !card.highlighted;
@@ -192,7 +190,7 @@ export default function FlashcardsPage() {
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
   }, [visible]);
 
-  const exam = FINANCIAL_EXAMS.find((e) => e.id === examId);
+  const exam = getExamById(examId);
 
   if (loading && !user) {
     return (
@@ -231,7 +229,8 @@ export default function FlashcardsPage() {
         <div className="mb-6">
           <h1 className="font-display text-3xl font-semibold text-navy">Flashcards</h1>
           <p className="mt-2 text-sm text-muted">
-            One deck per exam. Select text in a bot reply to collect cards — they are auto-sorted by subject.
+            Save formulas and explanations from AskFinBots into exam-specific flashcards for CFA,
+            FRM, ACCA, CPA and more. Cards are sorted by subject for faster revision.
           </p>
         </div>
 
@@ -241,42 +240,30 @@ export default function FlashcardsPage() {
           </p>
         )}
 
-        <div className="mb-6 flex gap-2 overflow-x-auto pb-1">
-          {FINANCIAL_EXAMS.map((e) => (
-            <button
-              key={e.id}
-              type="button"
-              onClick={() => void switchExam(e.id)}
-              className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-sm ${
-                examId === e.id
-                  ? "border-navy bg-navy text-white"
-                  : "border-line bg-white text-navy hover:border-navy/40"
-              }`}
-            >
-              <ExamLogo src={e.logo} alt="" size={20} className="!mx-0 shadow-none" />
-              {e.name}
-            </button>
-          ))}
-        </div>
+        {!user.examId ? (
+          <NoQualificationPrompt className="mb-6" />
+        ) : (
+          <>
+            <SelectedQualificationBanner examId={examId} />
 
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            {exam && <ExamLogo src={exam.logo} alt={exam.name} size={36} className="!mx-0" />}
-            <div>
-              <p className="font-semibold text-navy">{exam?.name} deck</p>
-              <p className="text-xs text-muted">
-                {cards.length} card{cards.length === 1 ? "" : "s"}
-                {loading ? " · refreshing…" : ""}
-              </p>
-            </div>
-          </div>
-          <label className="text-sm text-muted">
-            Subject{" "}
-            <select
-              className="admin-input ml-1 inline-block w-auto min-w-[10rem]"
-              value={subjectFilter}
-              onChange={(e) => setSubjectFilter(e.target.value)}
-            >
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                {exam && <ExamLogo src={exam.logo} alt={exam.name} size={36} className="!mx-0" />}
+                <div>
+                  <p className="font-semibold text-navy">{exam?.name} deck</p>
+                  <p className="text-xs text-muted">
+                    {cards.length} card{cards.length === 1 ? "" : "s"}
+                    {loading ? " · refreshing…" : ""}
+                  </p>
+                </div>
+              </div>
+              <label className="text-sm text-muted">
+                Subject{" "}
+                <select
+                  className="admin-input ml-1 inline-block w-auto min-w-[10rem]"
+                  value={subjectFilter}
+                  onChange={(e) => setSubjectFilter(e.target.value)}
+                >
               {subjects.map((s) => (
                 <option key={s} value={s}>
                   {s === "all" ? "All subjects" : s}
@@ -410,6 +397,8 @@ export default function FlashcardsPage() {
               </section>
             ))}
           </div>
+        )}
+          </>
         )}
       </main>
       <Footer />

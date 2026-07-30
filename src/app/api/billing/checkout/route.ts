@@ -18,7 +18,7 @@ import {
   isStripeCheckoutReady,
   ensureStripePercentOffCoupon,
 } from "@/lib/stripe";
-import { getPreferredCheckoutProvider, getWisePaymentLink } from "@/lib/wise";
+import { getPreferredCheckoutProvider } from "@/lib/payments";
 import {
   applyDiscountCents,
   recordPromoRedemption,
@@ -100,7 +100,6 @@ export async function POST(request: NextRequest) {
     const provider = getPreferredCheckoutProvider();
     const hasTwentyOff = promo?.ok && promo.tier === "percent_20";
 
-    // 20% off needs Stripe coupons; Wise fixed links cannot discount.
     if (hasTwentyOff && !isStripeCheckoutReady()) {
       return NextResponse.json(
         {
@@ -111,7 +110,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (provider === "none" && !hasTwentyOff) {
+    if (provider === "none" || !isStripeCheckoutReady()) {
       return NextResponse.json(
         { error: "Secure checkout is not enabled yet." },
         { status: 503 }
@@ -136,37 +135,15 @@ export async function POST(request: NextRequest) {
       promoTier: promo?.ok ? promo.tier : undefined,
     });
 
-    // Prefer Stripe when a 20% promo is applied.
-    if (!hasTwentyOff && provider === "wise") {
-      const wiseLink = getWisePaymentLink(tokenPackage.id);
-      if (!wiseLink) {
-        await updatePurchase(purchase.id, { status: "failed" });
-        return NextResponse.json({ error: "Wise payment link is missing for this plan." }, { status: 503 });
-      }
-      const separator = wiseLink.includes("?") ? "&" : "?";
-      const url = `${wiseLink}${separator}reference=${encodeURIComponent(purchase.id.slice(0, 8).toUpperCase())}`;
-      return NextResponse.json({
-        url,
-        orderId: purchase.id,
-        provider: "wise",
-        note: "Complete payment in Wise. Your membership renews monthly unless cancelled in My Profile.",
-      });
-    }
-
-    if (!isStripeCheckoutReady()) {
-      await updatePurchase(purchase.id, { status: "failed" });
-      return NextResponse.json({ error: "Secure checkout is not enabled yet." }, { status: 503 });
-    }
-
     try {
       const stripe = getStripe();
       const appUrl = getAppUrl(request.url);
       const customerOptions: Pick<
         Stripe.Checkout.SessionCreateParams,
-        "customer" | "customer_email" | "customer_creation"
+        "customer" | "customer_email"
       > = user.stripeCustomerId
         ? { customer: user.stripeCustomerId }
-        : { customer_email: user.email, customer_creation: "always" };
+        : { customer_email: user.email };
 
       const discounts: Stripe.Checkout.SessionCreateParams.Discount[] | undefined =
         hasTwentyOff

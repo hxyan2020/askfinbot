@@ -9,13 +9,11 @@ import { SITE_NAME } from "@/lib/constants";
 export function Header() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const paymentsEnabled = process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === "true";
   const navItems = [
     { href: "/", label: "Ask Bot" },
     { href: "/study", label: "Study Path" },
     { href: "/mindmap", label: "Mindmap" },
     { href: "/flashcards", label: "Flashcards" },
-    ...(paymentsEnabled ? [{ href: "/cart", label: "Buy Tokens" }] : []),
     { href: "/profile", label: "My Profile" },
     { href: "/about", label: "About" },
     { href: "/contact", label: "Contact" },

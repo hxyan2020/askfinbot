@@ -48,9 +48,22 @@ const PASSWORD_HINT =
 
 function getInitialTab(): Tab {
   if (typeof window === "undefined") return "account";
-  return new URLSearchParams(window.location.search).get("tab") === "billing"
-    ? "billing"
-    : "account";
+  const tab = new URLSearchParams(window.location.search).get("tab");
+  if (tab === "billing" || tab === "tokens" || tab === "exam" || tab === "security" || tab === "account") {
+    return tab;
+  }
+  return "account";
+}
+
+function formatPlanDate(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 }
 
 async function fetchCurrentUser(): Promise<PublicUser | null> {
@@ -70,8 +83,7 @@ export default function ProfilePage() {
   const [billingLoaded, setBillingLoaded] = useState(false);
   const [hasStripeCustomer, setHasStripeCustomer] = useState(false);
   const [checkoutEnabled, setCheckoutEnabled] = useState(false);
-  const [checkoutProvider, setCheckoutProvider] = useState<"wise" | "stripe" | "none">("none");
-  const [wiseProfileUrl, setWiseProfileUrl] = useState("https://wise.com/login");
+  const [checkoutProvider, setCheckoutProvider] = useState<"stripe" | "none">("none");
   const [membership, setMembership] = useState<PublicUser["membership"]>({
     status: "none",
     packageId: null,
@@ -97,6 +109,7 @@ export default function ProfilePage() {
   async function refreshUser() {
     const nextUser = await fetchCurrentUser();
     setUser(nextUser);
+    if (nextUser?.membership) setMembership(nextUser.membership);
     if (nextUser?.examId) {
       localStorage.setItem(EXAM_STORAGE_KEY, nextUser.examId);
     }
@@ -108,6 +121,7 @@ export default function ProfilePage() {
       .then((nextUser) => {
         if (!active) return;
         setUser(nextUser);
+        if (nextUser?.membership) setMembership(nextUser.membership);
         if (nextUser?.examId) {
           localStorage.setItem(EXAM_STORAGE_KEY, nextUser.examId);
         }
@@ -134,12 +148,16 @@ export default function ProfilePage() {
         setPurchases(data.purchases || []);
         setHasStripeCustomer(Boolean(data.hasStripeCustomer));
         setCheckoutEnabled(Boolean(data.checkoutEnabled));
-        setCheckoutProvider(data.checkoutProvider || "none");
-        setWiseProfileUrl(data.wiseProfileUrl || "https://wise.com/login");
+        setCheckoutProvider(data.checkoutProvider === "stripe" ? "stripe" : "none");
         if (data.membership) setMembership(data.membership);
         setUser((current) =>
           current
-            ? { ...current, tokens: data.tokens, membership: data.membership || current.membership }
+            ? {
+                ...current,
+                tokens: data.tokens,
+                unlimitedTokens: Boolean(data.unlimitedTokens),
+                membership: data.membership || current.membership,
+              }
             : current
         );
       })
@@ -158,14 +176,6 @@ export default function ProfilePage() {
     clearAlerts();
     setBusy(true);
     try {
-      if (checkoutProvider === "wise") {
-        window.open(wiseProfileUrl, "_blank", "noopener,noreferrer");
-        setMessage(
-          "Open Wise to manage bank accounts, Google Pay / cards linked to Wise, and other payment methods available on your Wise account."
-        );
-        setBusy(false);
-        return;
-      }
       const res = await fetch("/api/billing/portal", { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not open payment settings.");
@@ -622,74 +632,166 @@ export default function ProfilePage() {
                   </Link>
                 </div>
 
-                {(membership?.status === "active" || membership?.status === "canceling") && (
-                  <div className="rounded-xl border border-navy/15 bg-slate-50 p-4">
-                    <p className="text-sm font-semibold text-navy">
-                      Current plan: {membership.packageName || "Membership"}
-                    </p>
-                    <p className="mt-1 text-sm text-muted">
-                      {membership.status === "canceling"
-                        ? `Cancellation scheduled. Your membership continues until ${
-                            membership.renewsAt
-                              ? new Date(membership.renewsAt).toLocaleDateString()
-                              : "the end of this cycle"
-                          }.`
-                        : `Renews automatically on ${
-                            membership.renewsAt
-                              ? new Date(membership.renewsAt).toLocaleDateString()
-                              : "the next billing date"
-                          } unless cancelled.`}
-                    </p>
-                    {membership.status === "active" && (
-                      <button
-                        type="button"
-                        className="btn-secondary mt-3"
-                        disabled={busy}
-                        onClick={() => void cancelPlan()}
-                      >
-                        Cancel plan
-                      </button>
-                    )}
-                    {membership.status === "canceling" && (
-                      <p className="mt-3 text-xs text-amber-800">
-                        Auto-renewal is off. You keep full access until the current cycle ends.
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                <div className="grid gap-3 md:grid-cols-3">
-                  {TOKEN_PACKAGES.map((tokenPlan) => (
-                    <article
-                      key={tokenPlan.id}
+                {(() => {
+                  const planStatus = membership?.status || "none";
+                  const hasPlan = planStatus === "active" || planStatus === "canceling";
+                  const renewsLabel = formatPlanDate(membership?.renewsAt);
+                  const activePackage = TOKEN_PACKAGES.find(
+                    (item) => item.id === membership?.packageId
+                  );
+                  return (
+                    <div
                       className={`rounded-xl border p-4 ${
-                        tokenPlan.featured ? "border-gold bg-amber-50/40" : "border-line"
+                        hasPlan
+                          ? "border-navy/20 bg-slate-50"
+                          : "border-dashed border-slate-300 bg-white"
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-2">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <p className="font-semibold text-navy">{tokenPlan.name}</p>
-                          <p className="mt-0.5 text-xs text-muted">{tokenPlan.tokens} tokens / month</p>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                            Your plan
+                          </p>
+                          {hasPlan ? (
+                            <>
+                              <p className="mt-1 text-lg font-semibold text-navy">
+                                {membership?.packageName || activePackage?.name || "Membership"}
+                              </p>
+                              <p className="mt-1 text-sm text-slate-600">
+                                Status:{" "}
+                                <strong className="text-navy">
+                                  {planStatus === "canceling"
+                                    ? "Active · auto-renew off"
+                                    : "Active"}
+                                </strong>
+                              </p>
+                              {activePackage && (
+                                <p className="mt-1 text-sm text-slate-600">
+                                  Includes {activePackage.tokens} tokens each billing cycle
+                                </p>
+                              )}
+                              <p className="mt-1 text-sm text-slate-600">
+                                {planStatus === "canceling" ? (
+                                  <>
+                                    Access expires on{" "}
+                                    <strong className="text-navy">
+                                      {renewsLabel || "the end of this cycle"}
+                                    </strong>
+                                    . It will not renew.
+                                  </>
+                                ) : (
+                                  <>
+                                    Renews / expires on{" "}
+                                    <strong className="text-navy">
+                                      {renewsLabel || "the next billing date"}
+                                    </strong>
+                                    , then renews automatically unless cancelled.
+                                  </>
+                                )}
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="mt-1 text-lg font-semibold text-navy">No active plan</p>
+                              <p className="mt-1 max-w-xl text-sm text-slate-600">
+                                You are not on a monthly Starter, Plus, or Pro membership. Your
+                                remaining balance ({user.unlimitedTokens ? "unlimited" : user.tokens}{" "}
+                                tokens) still works until spent. Free trial tokens are granted once at
+                                registration. Order a plan to top up and enable automatic monthly
+                                renewal.
+                              </p>
+                            </>
+                          )}
                         </div>
-                        <p className="font-semibold text-navy">
-                          {formatPrice(tokenPlan.priceCents, tokenPlan.currency)}
-                        </p>
+                        {hasPlan && planStatus === "active" && (
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            disabled={busy}
+                            onClick={() => void cancelPlan()}
+                          >
+                            Cancel plan
+                          </button>
+                        )}
+                        {!hasPlan && (
+                          <Link href="/cart" className="btn-secondary">
+                            Choose a plan
+                          </Link>
+                        )}
                       </div>
-                      <p className="mt-3 text-xs leading-relaxed text-slate-600">
-                        {tokenPlan.idealFor}
-                      </p>
-                      <p className="mt-3 text-xs leading-relaxed text-slate-700">
-                        Expires in <strong>1 month</strong> and renews automatically unless cancelled.
-                        Cancel anytime in My Profile — membership continues until the cycle ends.
-                      </p>
-                    </article>
-                  ))}
+                      {planStatus === "canceling" && (
+                        <p className="mt-3 text-xs text-amber-800">
+                          Auto-renewal is off. You keep full access until{" "}
+                          {renewsLabel || "the current cycle ends"}.
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                <div className="grid gap-3 md:grid-cols-3">
+                  {TOKEN_PACKAGES.map((tokenPlan) => {
+                    const isCurrent =
+                      (membership?.status === "active" || membership?.status === "canceling") &&
+                      membership?.packageId === tokenPlan.id;
+                    return (
+                      <article
+                        key={tokenPlan.id}
+                        className={`rounded-xl border p-4 ${
+                          isCurrent
+                            ? "border-navy bg-navy/[0.04] ring-1 ring-navy/20"
+                            : tokenPlan.featured
+                              ? "border-gold bg-amber-50/40"
+                              : "border-line"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="font-semibold text-navy">{tokenPlan.name}</p>
+                              {isCurrent && (
+                                <span className="rounded-full bg-navy px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                                  Current plan
+                                </span>
+                              )}
+                            </div>
+                            <p className="mt-0.5 text-xs text-muted">
+                              {tokenPlan.tokens} tokens / month
+                            </p>
+                          </div>
+                          <p className="font-semibold text-navy">
+                            {formatPrice(tokenPlan.priceCents, tokenPlan.currency)}
+                          </p>
+                        </div>
+                        <p className="mt-3 text-xs leading-relaxed text-slate-600">
+                          {tokenPlan.idealFor}
+                        </p>
+                        <p className="mt-3 text-xs leading-relaxed text-slate-700">
+                          {isCurrent && membership?.renewsAt ? (
+                            <>
+                              Your cycle{" "}
+                              {membership.status === "canceling" ? "expires" : "renews"} on{" "}
+                              <strong>{formatPlanDate(membership.renewsAt)}</strong>
+                              {membership.status === "canceling"
+                                ? " (auto-renew off)."
+                                : " unless cancelled."}
+                            </>
+                          ) : (
+                            <>
+                              Expires in <strong>1 month</strong> and renews automatically unless
+                              cancelled. Cancel anytime in My Profile — membership continues until
+                              the cycle ends.
+                            </>
+                          )}
+                        </p>
+                      </article>
+                    );
+                  })}
                 </div>
                 <p className="text-xs text-muted">
                   Tokens are stored on your account and spent when you ask the bot. Free trial tokens
-                  are granted once at registration. Payments are received via{" "}
-                  {checkoutProvider === "wise" ? "Wise" : "secure checkout"} and tokens/membership
-                  renew monthly unless you cancel.
+                  are granted once at registration. Payments are processed securely with Stripe and
+                  tokens/membership renew monthly unless you cancel.
                 </p>
               </section>
             )}
@@ -699,27 +801,21 @@ export default function ProfilePage() {
                 {!checkoutEnabled && billingLoaded && (
                   <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                     Checkout is being activated. Your plans, balance, and order history remain available
-                    here. Add Wise reusable payment links (
-                    <code className="text-xs">WISE_PAYMENT_LINK_STARTER/PLUS/PRO</code>) or Stripe keys
-                    to start receiving payments.
+                    here. Configure Stripe keys on the server to start receiving payments.
                   </p>
                 )}
 
-                {(membership?.status === "active" || membership?.status === "canceling") && (
+                {(membership?.status === "active" || membership?.status === "canceling") ? (
                   <div className="rounded-xl border border-navy/15 bg-slate-50 p-4">
                     <h2 className="text-base font-semibold text-navy">Membership</h2>
                     <p className="mt-1 text-sm text-muted">
                       {membership.packageName} ·{" "}
                       {membership.status === "canceling"
                         ? `Continues until ${
-                            membership.renewsAt
-                              ? new Date(membership.renewsAt).toLocaleDateString()
-                              : "cycle end"
+                            formatPlanDate(membership.renewsAt) || "cycle end"
                           } (auto-renew off)`
                         : `Auto-renews on ${
-                            membership.renewsAt
-                              ? new Date(membership.renewsAt).toLocaleDateString()
-                              : "next cycle"
+                            formatPlanDate(membership.renewsAt) || "next cycle"
                           }`}
                     </p>
                     {membership.status === "active" && (
@@ -737,39 +833,39 @@ export default function ProfilePage() {
                       ends.
                     </p>
                   </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-slate-300 bg-white p-4">
+                    <h2 className="text-base font-semibold text-navy">No active plan</h2>
+                    <p className="mt-1 text-sm text-muted">
+                      You do not have a monthly membership. Your current token balance remains usable
+                      until spent.{" "}
+                      <Link href="/cart" className="font-semibold text-navy underline underline-offset-2">
+                        Compare plans and order
+                      </Link>
+                    </p>
+                  </div>
                 )}
 
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h2 className="text-base font-semibold text-navy">Payment methods</h2>
                     <p className="mt-1 max-w-xl text-sm text-muted">
-                      {checkoutProvider === "wise"
-                        ? "Payments are received into the AskFinBots Wise Business account. In Wise you can manage bank accounts, Google Pay / cards linked to Wise, and other payment options Wise supports for your region."
-                        : "Manage cards, bank debits, and other saved payment methods in the secure billing portal. AskFinBots never receives your full card number."}
+                      Manage cards and other saved payment methods in the Stripe customer portal.
+                      AskFinBots never receives your full card number.
                     </p>
                   </div>
                   <button
                     type="button"
                     className="btn-secondary"
-                    disabled={
-                      busy ||
-                      !checkoutEnabled ||
-                      (checkoutProvider !== "wise" && !hasStripeCustomer)
-                    }
+                    disabled={busy || !checkoutEnabled || !hasStripeCustomer}
                     onClick={() => void managePaymentMethods()}
                   >
-                    {checkoutProvider === "wise" ? "Manage in Wise" : "Manage payment methods"}
+                    Manage payment methods
                   </button>
                 </div>
-                {checkoutProvider !== "wise" && !hasStripeCustomer && billingLoaded && (
+                {!hasStripeCustomer && billingLoaded && (
                   <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-muted">
                     Payment-method management becomes available after your first successful purchase.
-                  </p>
-                )}
-                {checkoutProvider === "wise" && (
-                  <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-muted">
-                    Wise receives plan payments directly. Keep your Wise payout/bank details and linked
-                    wallets up to date in your Wise account settings.
                   </p>
                 )}
 

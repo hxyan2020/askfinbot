@@ -9,6 +9,9 @@ export function Footer() {
           &copy; {new Date().getFullYear()} {SITE_NAME}. Study support only — not official exam material.
         </p>
         <div className="grid w-full max-w-sm grid-cols-2 items-center gap-x-6 gap-y-3 sm:flex sm:w-auto sm:max-w-none sm:flex-wrap sm:justify-center sm:gap-6">
+          <Link href="/" className="footer-link">
+            Ask Bot
+          </Link>
           <Link href="/about" className="footer-link">
             About
           </Link>

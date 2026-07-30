@@ -3,6 +3,14 @@ import { Fraunces, Source_Sans_3 } from "next/font/google";
 import "katex/dist/katex.min.css";
 import "./globals.css";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
+import { JsonLd } from "@/components/JsonLd";
+import {
+  buildPageMetadata,
+  faqJsonLd,
+  organizationJsonLd,
+  softwareApplicationJsonLd,
+  websiteJsonLd,
+} from "@/lib/seo";
 
 const sourceSans = Source_Sans_3({
   variable: "--font-source",
@@ -14,27 +22,28 @@ const fraunces = Fraunces({
   subsets: ["latin"],
 });
 
+const home = buildPageMetadata("home");
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} — AI Financial Exam Tutor`,
+    default: typeof home.title === "string" ? `${home.title} | ${SITE_NAME}` : SITE_NAME,
     template: `%s | ${SITE_NAME}`,
   },
-  description:
-    "AskFinBots helps you prepare for top financial qualification exams — CFA, FRM, CPA, ACCA, and more. AI-powered study chat with 50 free tokens.",
-  metadataBase: new URL(SITE_URL),
+  description: home.description,
+  keywords: home.keywords,
+  applicationName: SITE_NAME,
+  category: "education",
+  creator: SITE_NAME,
+  publisher: SITE_NAME,
+  alternates: home.alternates,
+  openGraph: home.openGraph,
+  twitter: home.twitter,
+  robots: home.robots,
   icons: {
     icon: [{ url: "/logo.png", type: "image/png" }],
     shortcut: "/logo.png",
     apple: "/logo.png",
-  },
-  openGraph: {
-    title: `${SITE_NAME} — AI Financial Exam Tutor`,
-    description:
-      "Master financial qualification exams with AI-powered tutoring. CFA, FRM, CPA, ACCA, CAIA, CFP, and more.",
-    url: SITE_URL,
-    siteName: SITE_NAME,
-    type: "website",
-    images: [{ url: "/logo.png" }],
   },
 };
 
@@ -45,7 +54,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${sourceSans.variable} ${fraunces.variable} h-full`}>
-      <body className="flex min-h-full flex-col antialiased">{children}</body>
+      <body className="flex min-h-full flex-col antialiased">
+        <JsonLd
+          data={[
+            organizationJsonLd(),
+            websiteJsonLd(),
+            softwareApplicationJsonLd(),
+            faqJsonLd(),
+          ]}
+        />
+        {children}
+      </body>
     </html>
   );
 }

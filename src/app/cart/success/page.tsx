@@ -2,11 +2,9 @@ import type { Metadata } from "next";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CheckoutSuccess } from "@/components/CheckoutSuccess";
-import { SITE_NAME } from "@/lib/constants";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: `Payment Status | ${SITE_NAME}`,
-};
+export const metadata: Metadata = buildPageMetadata("cartSuccess");
 
 export default function CartSuccessPage() {
   return (

@@ -118,11 +118,8 @@ export function TokenCart({
       )}
       {!checkoutEnabled && !appliedPromo?.skipPayment && (
         <p className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          The plans are available to review now. To start receiving payments, configure Wise reusable
-          payment links (<code className="text-xs">WISE_PAYMENT_LINK_STARTER</code>,{" "}
-          <code className="text-xs">WISE_PAYMENT_LINK_PLUS</code>,{" "}
-          <code className="text-xs">WISE_PAYMENT_LINK_PRO</code>) or Stripe checkout keys on the
-          server. A 100% promo code can still be redeemed without payment.
+          The plans are available to review now. Secure Stripe checkout is not enabled on this
+          environment yet. A 100% promo code can still be redeemed without payment.
         </p>
       )}
 
@@ -297,9 +294,9 @@ export function TokenCart({
         <div>
           <h3 className="font-semibold text-navy">Secure payment</h3>
           <p className="mt-2 text-sm leading-relaxed text-muted">
-            Checkout uses Wise payment links when configured, with Stripe subscriptions as fallback.
-            20% promo codes use Stripe so the discount applies on renewals; 100% codes activate
-            instantly with no payment page.
+            Checkout uses Stripe subscriptions. Cards and other payment methods enabled in your
+            Stripe Dashboard appear automatically. 20% promo codes apply as Stripe coupons on
+            renewals; 100% codes activate instantly with no payment page.
           </p>
         </div>
       </section>

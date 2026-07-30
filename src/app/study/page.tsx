@@ -7,7 +7,11 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CoursewareModal } from "@/components/CoursewareModal";
 import {
-  FINANCIAL_EXAMS,
+  NoQualificationPrompt,
+  SelectedQualificationBanner,
+  readStoredExamId,
+} from "@/components/SelectedQualificationBanner";
+import {
   examHasMultipleLevels,
   getDefaultLevelId,
   getExamById,
@@ -142,9 +146,13 @@ export default function StudyPathPage() {
         if (!active) return;
         setUser(nextUser);
         if (!nextUser) return;
-        if (nextUser.examId) {
-          setExamId(nextUser.examId);
-          setLevelId(getDefaultLevelId(nextUser.examId));
+        const preferred =
+          (nextUser.examId && getExamById(nextUser.examId) ? nextUser.examId : null) ||
+          readStoredExamId();
+        if (preferred) {
+          setUser({ ...nextUser, examId: nextUser.examId || preferred });
+          setExamId(preferred);
+          setLevelId(getDefaultLevelId(preferred));
         }
         if (existingPortfolio) {
           setPortfolio(existingPortfolio);
@@ -157,7 +165,10 @@ export default function StudyPathPage() {
           setExamDate(existingPortfolio.examDate);
           setDaysUntilExam(calculateDaysUntilExam(existingPortfolio.examDate));
           setStep("portfolio");
-        } else {
+          if (!preferred) {
+            setUser({ ...nextUser, examId: existingPortfolio.examId });
+          }
+        } else if (preferred) {
           setBusy(true);
         }
       })
@@ -196,11 +207,10 @@ export default function StudyPathPage() {
     };
   }, [examId, hasPortfolio, levelId, userId]);
 
-  function onExamChange(nextExamId: string) {
+  function onLevelChange(nextLevelId: string) {
     setBusy(true);
     setError(null);
-    setExamId(nextExamId);
-    setLevelId(getDefaultLevelId(nextExamId));
+    setLevelId(nextLevelId);
     setPlan(null);
   }
 
@@ -326,7 +336,8 @@ export default function StudyPathPage() {
           <div>
             <h1 className="font-display text-3xl font-semibold text-navy">Study Path</h1>
             <p className="mt-2 text-sm text-muted">
-              Syllabus → roadmap → personal strategy → tracked portfolio.
+              Syllabus roadmap, personalized strategy, and progress tracking for CFA, FRM, ACCA, CPA
+              and other finance qualifications.
             </p>
           </div>
           {portfolio && (
@@ -340,48 +351,34 @@ export default function StudyPathPage() {
           <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
         )}
 
-        <div className="mb-4 grid gap-3 sm:grid-cols-2">
-          <label className="admin-label block">
-            Qualification
-            <select
-              className="admin-input"
-              value={examId}
-              disabled={!!portfolio || busy}
-              onChange={(e) => onExamChange(e.target.value)}
-            >
-              {FINANCIAL_EXAMS.map((exam) => (
-                <option key={exam.id} value={exam.id}>
-                  {exam.name} — {exam.fullName}
-                </option>
-              ))}
-            </select>
-          </label>
+        {!user.examId ? (
+          <NoQualificationPrompt className="mb-6" />
+        ) : (
+          <SelectedQualificationBanner
+            examId={examId}
+            levelControls={
+              showLevelPicker ? (
+                <label className="admin-label block">
+                  {selectedExam?.levelLabel || "Level"}
+                  <select
+                    className="admin-input"
+                    value={levelId}
+                    disabled={!!portfolio || busy}
+                    onChange={(e) => onLevelChange(e.target.value)}
+                  >
+                    {selectedExam?.levels.map((level) => (
+                      <option key={level.id} value={level.id}>
+                        {level.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : undefined
+            }
+          />
+        )}
 
-          {showLevelPicker && (
-            <label className="admin-label block">
-              {selectedExam?.levelLabel || "Level"}
-              <select
-                className="admin-input"
-                value={levelId}
-                disabled={!!portfolio || busy}
-                onChange={(e) => {
-                  setBusy(true);
-                  setError(null);
-                  setLevelId(e.target.value);
-                  setPlan(null);
-                }}
-              >
-                {selectedExam?.levels.map((level) => (
-                  <option key={level.id} value={level.id}>
-                    {level.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-        </div>
-
-        {step !== "portfolio" && syllabus && (
+        {user.examId && step !== "portfolio" && syllabus && (
           <section className="surface-card mb-6 space-y-4 p-6">
             <div>
               <h2 className="text-lg font-semibold text-navy">Latest syllabus outline</h2>
@@ -463,7 +460,7 @@ export default function StudyPathPage() {
           </section>
         )}
 
-        {(step === "inputs" || step === "strategy") && !portfolio && (
+        {(user.examId && (step === "inputs" || step === "strategy") && !portfolio) && (
           <section className="surface-card mb-6 p-6">
             <h2 className="mb-3 text-lg font-semibold text-navy">Your capacity & exam date</h2>
             <form onSubmit={previewPlan} className="grid gap-3 sm:grid-cols-2">
@@ -509,7 +506,7 @@ export default function StudyPathPage() {
           </section>
         )}
 
-        {step === "strategy" && plan && !portfolio && (
+        {user.examId && step === "strategy" && plan && !portfolio && (
           <section className="surface-card mb-6 space-y-4 p-6">
             <div>
               <p className="text-xs uppercase tracking-wide text-muted">
@@ -552,13 +549,13 @@ export default function StudyPathPage() {
           </section>
         )}
 
-        {step === "portfolio" && portfolio && (
+        {user.examId && step === "portfolio" && portfolio && (
           <section className="surface-card space-y-4 p-6">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 <h2 className="text-lg font-semibold text-navy">Study portfolio</h2>
                 <p className="text-sm text-muted">
-                  {FINANCIAL_EXAMS.find((e) => e.id === portfolio.examId)?.name}
+                  {getExamById(portfolio.examId)?.name}
                   {portfolio.levelName ? ` · ${portfolio.levelName}` : ""} · exam {portfolio.examDate} ·{" "}
                   {portfolio.hoursPerDay}h/day
                 </p>

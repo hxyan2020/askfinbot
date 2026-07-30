@@ -1,6 +1,7 @@
 import { FINANCIAL_EXAMS, getDefaultLevelId, getExamById } from "@/lib/exams";
 import { ALL_COURSEWARE } from "@/lib/courseware";
 import { emojiForExam, emojiForLabel } from "./emojis";
+import { expandModuleAreaTopics } from "./expand";
 import type { MindmapMeta, MindmapNode, MindmapPayload } from "./types";
 
 function modulesFor(examId: string, levelId: string) {
@@ -44,7 +45,6 @@ export function buildMindmap(examId: string, levelId?: string): MindmapPayload |
         );
 
   let topicCount = 0;
-  let testPointCount = 0;
   const windows: string[] = [];
   let refreshedAt = "";
   let syllabusVersion = "";
@@ -63,8 +63,10 @@ export function buildMindmap(examId: string, levelId?: string): MindmapPayload |
       officialSourceUrl = officialSourceUrl || currency.officialSourceUrl;
     }
 
+    const expandedTopics = expandModuleAreaTopics(module);
     const areaNodes: MindmapNode[] = (module.syllabusAreas || []).map((area, areaIndex) => {
-      const topicNodes: MindmapNode[] = area.topics.map((topic, topicIndex) => {
+      const topics = expandedTopics[areaIndex] || area.topics;
+      const topicNodes: MindmapNode[] = topics.map((topic, topicIndex) => {
         topicCount += 1;
         return {
           id: `${module.moduleId}-area-${areaIndex}-t-${topicIndex}`,
@@ -81,23 +83,6 @@ export function buildMindmap(examId: string, levelId?: string): MindmapPayload |
         children: topicNodes,
       };
     });
-
-    const testPoints = module.depth?.testPoints ?? [];
-    testPointCount += testPoints.length;
-    if (testPoints.length) {
-      areaNodes.push({
-        id: `${module.moduleId}-tests`,
-        label: "Key exam test points",
-        kind: "test-group",
-        emoji: emojiForLabel("exam test points", "test-group"),
-        children: testPoints.map((point) => ({
-          id: point.id,
-          label: point.title,
-          kind: "test-point" as const,
-          priority: point.priority,
-        })),
-      });
-    }
 
     // If a module has no syllabus areas yet, surface learning outcomes / lesson titles
     if (!areaNodes.length) {
@@ -148,11 +133,11 @@ export function buildMindmap(examId: string, levelId?: string): MindmapPayload |
     relevance,
     relevanceNote:
       relevanceNote ||
-      "Mind map derived from AskFinBots courseware topics and exam test points.",
+      "Mind map derived from AskFinBots courseware syllabus areas, lessons, and learning outcomes.",
     officialSourceUrl,
     moduleCount: moduleNodes.length,
     topicCount,
-    testPointCount,
+    testPointCount: 0,
   };
 
   return { meta, root };

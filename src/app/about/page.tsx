@@ -5,11 +5,9 @@ import { Footer } from "@/components/Footer";
 import { SITE_NAME } from "@/lib/constants";
 import { MENTORS } from "@/lib/mentors";
 import { FINANCIAL_EXAMS } from "@/lib/exams";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: `About | ${SITE_NAME}`,
-  description: `How ${SITE_NAME} differs from a generic chatbot — RAG tutoring, qualification-holder review, and 24/7 mentor support across major finance exams.`,
-};
+export const metadata: Metadata = buildPageMetadata("about");
 
 export default function AboutPage() {
   return (
@@ -22,13 +20,70 @@ export default function AboutPage() {
             Built for finance qualifications — not generic chat
           </h1>
           <p className="mt-4 text-base leading-relaxed text-slate-700">
-            {SITE_NAME} is a purpose-built, specialist AI tutor for CFA, FRM, CPA, ACCA, and other
-            major financial exams. Its exam-focused training, syllabus coverage, and study guidance
-            are continuously maintained with input from a global network of qualified professionals
-            who have passed the qualifications they support. It combines structured Study Path
-            planning with question-answering tuned to each syllabus, helping candidates focus on
-            what is most useful for exam success.
+            {SITE_NAME} is a purpose-built, specialist AI tutor for CFA, FRM, CPA, ACCA, CAIA, CFP,
+            SIE, CIMA, CMT, CFA ESG, and related financial exams. Its exam-focused training, syllabus
+            coverage, and study guidance are continuously maintained with input from a global network
+            of qualified professionals who have passed the qualifications they support. It combines
+            structured Study Path planning with question-answering tuned to each syllabus, helping
+            candidates focus on what is most useful for exam success.
           </p>
+        </section>
+
+        <section className="mb-14 max-w-3xl">
+          <h2 className="font-display text-2xl font-semibold text-navy">Who AskFinBots is for</h2>
+          <p className="mt-3 text-sm leading-relaxed text-slate-700">
+            Candidates preparing for competitive finance certifications who need fast, syllabus-aware
+            explanations — ethics vignettes, quantitative methods, financial reporting, risk,
+            auditing, and more — plus a clear weekly plan, mind map overview, and flashcards for
+            revision. It is study support only and is not affiliated with awarding bodies such as CFA
+            Institute, GARP, ACCA, or AICPA.
+          </p>
+          <ul className="mt-4 flex flex-wrap gap-2">
+            {FINANCIAL_EXAMS.map((exam) => (
+              <li
+                key={exam.id}
+                className="rounded-full border border-line bg-white px-3 py-1 text-xs font-semibold text-navy"
+              >
+                {exam.name}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="mb-14 max-w-3xl">
+          <h2 className="font-display text-2xl font-semibold text-navy">Frequently asked questions</h2>
+          <dl className="mt-4 space-y-5 text-sm leading-relaxed text-slate-700">
+            <div>
+              <dt className="font-semibold text-navy">Which finance exams does AskFinBots support?</dt>
+              <dd className="mt-1 text-muted">
+                Major qualifications including CFA, FRM, ACCA, CPA, CAIA, CFP, SIE, CIMA, CMT, and CFA
+                ESG. Choose your track on Ask Bot or under My Profile.
+              </dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-navy">Is AskFinBots a generic ChatGPT wrapper?</dt>
+              <dd className="mt-1 text-muted">
+                No. It is built for finance exam preparation with Study Path, syllabus mind maps,
+                flashcards, and tutoring flows tuned to each qualification.
+              </dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-navy">How do free tokens work?</dt>
+              <dd className="mt-1 text-muted">
+                New accounts receive free tokens at registration. One token is used when the tutor
+                successfully returns an answer. Monthly Starter, Plus, and Pro plans add capacity.
+              </dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-navy">
+                Can AskFinBots replace official curriculum providers?
+              </dt>
+              <dd className="mt-1 text-muted">
+                No. AskFinBots is educational study support only. Use it alongside official readings
+                and approved prep materials from the relevant awarding body.
+              </dd>
+            </div>
+          </dl>
         </section>
 
         <section className="mb-14 grid gap-6 sm:grid-cols-3">

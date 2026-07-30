@@ -3,11 +3,7 @@ import { getSessionUserIdFromCookies } from "@/lib/user-auth";
 import { getPurchasesForUser } from "@/lib/purchases";
 import { ensurePromoUnlimitedRenewal, findUserById } from "@/lib/users";
 import { isStripeCheckoutReady } from "@/lib/stripe";
-import {
-  getPreferredCheckoutProvider,
-  getWiseBusinessProfileUrl,
-  isWiseCheckoutReady,
-} from "@/lib/wise";
+import { getPreferredCheckoutProvider } from "@/lib/payments";
 
 export async function GET() {
   const userId = await getSessionUserIdFromCookies();
@@ -36,8 +32,6 @@ export async function GET() {
     hasStripeCustomer: Boolean(record?.stripeCustomerId),
     checkoutEnabled: provider !== "none",
     checkoutProvider: provider,
-    wiseCheckoutReady: isWiseCheckoutReady(),
-    wiseProfileUrl: getWiseBusinessProfileUrl(),
     stripeCheckoutReady: isStripeCheckoutReady(),
   });
 }
