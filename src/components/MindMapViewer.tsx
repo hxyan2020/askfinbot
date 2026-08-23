@@ -255,22 +255,98 @@ function collapseTopicsSet(root: MindmapNode): Set<string> {
   return set;
 }
 
+/** Mobile / large-tree start: fold modules (many papers) and always fold topics. */
+function compactCollapsedSet(root: MindmapNode): Set<string> {
+  const set = collapseTopicsSet(root);
+  const modules = root.children || [];
+  if (modules.length > 6) {
+    for (const mod of modules) {
+      if (mod.children?.length) set.add(mod.id);
+    }
+  }
+  return set;
+}
+
+function countNodes(node: MindmapNode): number {
+  return 1 + (node.children || []).reduce((sum, child) => sum + countNodes(child), 0);
+}
+
+function isCompactViewport(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(max-width: 768px)").matches;
+}
+
+/** Fully expanding huge syllabi (~50k+ px tall) blanks mobile SVG layers — keep topics folded. */
+function expandSetForTree(root: MindmapNode, compact: boolean): Set<string> {
+  const total = countNodes(root);
+  if (compact || total > 250) return collapseTopicsSet(root);
+  return new Set();
+}
+
+function defaultCollapsed(root: MindmapNode, compact: boolean): Set<string> {
+  if (compact) return compactCollapsedSet(root);
+  if (countNodes(root) > 200) return collapseTopicsSet(root);
+  return new Set();
+}
+
+function fitTransform(
+  nodes: LaidOut[],
+  viewportW: number,
+  viewportH: number
+): { scale: number; tx: number; ty: number } {
+  if (!nodes.length || viewportW <= 0 || viewportH <= 0) {
+    return { scale: 0.75, tx: 20, ty: 10 };
+  }
+  const minX = Math.min(...nodes.map((n) => n.x));
+  const minY = Math.min(...nodes.map((n) => n.y));
+  const maxX = Math.max(...nodes.map((n) => n.x + n.width));
+  const maxY = Math.max(...nodes.map((n) => n.y + n.height));
+  const contentW = Math.max(1, maxX - minX);
+  const contentH = Math.max(1, maxY - minY);
+  const pad = 20;
+  const scale = Math.min(
+    1.35,
+    Math.max(0.2, Math.min((viewportW - pad * 2) / contentW, (viewportH - pad * 2) / contentH))
+  );
+  const tx = pad + (viewportW - pad * 2 - contentW * scale) / 2 - minX * scale;
+  const ty = pad - minY * scale;
+  return { scale: Number(scale.toFixed(3)), tx, ty };
+}
+
+const MIN_SCALE = 0.2;
+const MAX_SCALE = 2.4;
+
 export function MindMapViewer({ root }: { root: MindmapNode }) {
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
+  const [compact, setCompact] = useState(false);
+  // SSR-safe: fold topics so huge trees never paint a ~50k-px SVG on first frame.
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => collapseTopicsSet(root));
   const [scale, setScale] = useState(0.75);
   const [tx, setTx] = useState(20);
   const [ty, setTy] = useState(10);
   const [selected, setSelected] = useState<string | null>(root.id);
   const drag = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null);
+  const pinch = useRef<{ dist: number; scale: number } | null>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
+  const [fitEpoch, setFitEpoch] = useState(0);
+  const requestFit = useCallback(() => setFitEpoch((n) => n + 1), []);
 
   useEffect(() => {
-    setCollapsed(new Set());
+    const mq = window.matchMedia("(max-width: 768px)");
+    const apply = () => {
+      setCompact(mq.matches);
+    };
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+
+  useEffect(() => {
+    const narrow = isCompactViewport();
+    setCompact(narrow);
+    setCollapsed(defaultCollapsed(root, narrow));
     setSelected(root.id);
-    setScale(0.75);
-    setTx(20);
-    setTy(10);
-  }, [root]);
+    requestFit();
+  }, [root, requestFit]);
 
   const { nodes, width, height } = useMemo(
     () => layoutTree(root, collapsed),
@@ -279,6 +355,26 @@ export function MindMapViewer({ root }: { root: MindmapNode }) {
 
   const byId = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
   const selectedNode = selected ? byId.get(selected) : undefined;
+
+  const applyFit = useCallback(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+    const next = fitTransform(nodes, el.clientWidth, el.clientHeight);
+    setScale(next.scale);
+    setTx(next.tx);
+    setTy(next.ty);
+  }, [nodes]);
+
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+    const next = fitTransform(nodes, el.clientWidth, el.clientHeight);
+    setScale(next.scale);
+    setTx(next.tx);
+    setTy(next.ty);
+    // Only when fitEpoch bumps (load / expand / collapse) — not on every node toggle.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- nodes read from the render that requested fit
+  }, [fitEpoch]);
 
   const toggle = useCallback((id: string, hasChildren: boolean) => {
     if (!hasChildren) {
@@ -295,30 +391,24 @@ export function MindMapViewer({ root }: { root: MindmapNode }) {
   }, []);
 
   const zoomBy = useCallback((factor: number) => {
-    setScale((s) => Math.min(2.4, Math.max(0.25, Number((s * factor).toFixed(3)))));
+    setScale((s) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, Number((s * factor).toFixed(3)))));
   }, []);
 
   const resetView = useCallback(() => {
-    setScale(0.75);
-    setTx(20);
-    setTy(10);
-  }, []);
+    applyFit();
+  }, [applyFit]);
 
   const expandAll = useCallback(() => {
-    setCollapsed(new Set());
-    setScale(0.75);
-    setTx(20);
-    setTy(10);
-  }, []);
+    setCollapsed(expandSetForTree(root, compact || isCompactViewport()));
+    setSelected(root.id);
+    requestFit();
+  }, [root, compact, requestFit]);
 
   const collapseTopics = useCallback(() => {
-    setCollapsed(collapseTopicsSet(root));
-    // Collapsing shrinks the map a lot — snap back so nodes stay in view.
-    setScale(0.85);
-    setTx(20);
-    setTy(10);
+    setCollapsed(compact || isCompactViewport() ? compactCollapsedSet(root) : collapseTopicsSet(root));
     setSelected(root.id);
-  }, [root]);
+    requestFit();
+  }, [root, compact, requestFit]);
 
   useEffect(() => {
     const el = viewportRef.current;
@@ -327,7 +417,7 @@ export function MindMapViewer({ root }: { root: MindmapNode }) {
       if (event.ctrlKey || event.metaKey) {
         event.preventDefault();
         const direction = event.deltaY > 0 ? 0.9 : 1.1;
-        setScale((s) => Math.min(2.4, Math.max(0.25, Number((s * direction).toFixed(3)))));
+        setScale((s) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, Number((s * direction).toFixed(3)))));
       } else {
         setTx((v) => v - event.deltaX);
         setTy((v) => v - event.deltaY);
@@ -347,7 +437,7 @@ export function MindMapViewer({ root }: { root: MindmapNode }) {
           Zoom out
         </button>
         <button type="button" className="admin-btn-secondary" onClick={resetView}>
-          Reset view
+          Fit view
         </button>
         <button type="button" className="admin-btn-secondary" onClick={expandAll}>
           Expand all
@@ -356,20 +446,23 @@ export function MindMapViewer({ root }: { root: MindmapNode }) {
           Collapse topics
         </button>
         <span className="ml-auto text-xs text-muted">
-          Drag to pan · Ctrl/⌘ + scroll to zoom · Click nodes to fold
+          {compact
+            ? "Drag to pan · Pinch to zoom · Tap nodes to expand"
+            : "Drag to pan · Ctrl/⌘ + scroll to zoom · Click nodes to fold"}
         </span>
       </div>
 
       <div
         ref={viewportRef}
-        className="relative h-[min(72vh,820px)] cursor-grab overflow-hidden bg-[radial-gradient(circle_at_1px_1px,#e2e8f0_1px,transparent_0)] [background-size:18px_18px] active:cursor-grabbing"
+        className="relative h-[min(72vh,820px)] touch-none cursor-grab overflow-hidden bg-[radial-gradient(circle_at_1px_1px,#e2e8f0_1px,transparent_0)] [background-size:18px_18px] active:cursor-grabbing"
         onPointerDown={(event) => {
+          if (pinch.current) return;
           if ((event.target as HTMLElement).closest("[data-node]")) return;
           drag.current = { x: event.clientX, y: event.clientY, tx, ty };
           (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
         }}
         onPointerMove={(event) => {
-          if (!drag.current) return;
+          if (pinch.current || !drag.current) return;
           setTx(drag.current.tx + (event.clientX - drag.current.x));
           setTy(drag.current.ty + (event.clientY - drag.current.y));
         }}
@@ -378,6 +471,26 @@ export function MindMapViewer({ root }: { root: MindmapNode }) {
         }}
         onPointerCancel={() => {
           drag.current = null;
+        }}
+        onTouchStart={(event) => {
+          if (event.touches.length === 2) {
+            drag.current = null;
+            const [a, b] = [event.touches[0], event.touches[1]];
+            const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+            pinch.current = { dist: Math.max(1, dist), scale };
+          }
+        }}
+        onTouchMove={(event) => {
+          if (event.touches.length === 2 && pinch.current) {
+            event.preventDefault();
+            const [a, b] = [event.touches[0], event.touches[1]];
+            const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+            const next = pinch.current.scale * (dist / pinch.current.dist);
+            setScale(Math.min(MAX_SCALE, Math.max(MIN_SCALE, Number(next.toFixed(3)))));
+          }
+        }}
+        onTouchEnd={(event) => {
+          if (event.touches.length < 2) pinch.current = null;
         }}
       >
         <svg

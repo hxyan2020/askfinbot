@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { DemoWindow } from "./DemoWindow";
+import { demoBotAvatar } from "@/lib/bot-avatar";
 
 const ANSWER_BEFORE = "Duration measures a bond's price sensitivity to yield changes. ";
 const ANSWER_SELECTED =
@@ -58,7 +59,7 @@ export function FlashcardDemo() {
       <div className="relative flex min-h-[300px] flex-col gap-3 px-4 py-5 sm:min-h-[280px] sm:px-6">
         <div className="flex justify-start gap-3">
           <Image
-            src="/bot-avatar.png"
+            src={demoBotAvatar("frm")}
             alt="AskFinBots"
             width={36}
             height={36}

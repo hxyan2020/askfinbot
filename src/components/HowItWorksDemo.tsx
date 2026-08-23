@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { DemoWindow } from "./DemoWindow";
+import { demoBotAvatar } from "@/lib/bot-avatar";
 
 const QUESTION = "Explain VaR vs Expected Shortfall for FRM Part I";
 
@@ -95,7 +96,7 @@ export function HowItWorksDemo() {
         {(phase === "thinking" || phase === "answering" || phase === "done") && (
           <div className="flex justify-start gap-3">
             <Image
-              src="/bot-avatar.png"
+              src={demoBotAvatar("frm")}
               alt="AskFinBots"
               width={36}
               height={36}

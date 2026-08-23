@@ -62,8 +62,8 @@ export function ChatPanel({
   onTopUp,
 }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  // Chosen once per chat session so the tutor keeps one face until the bot is reopened.
-  const [botAvatar] = useState(pickBotAvatar);
+  // Face always comes from About-page MENTORS (exam-matched when possible).
+  const [botAvatar, setBotAvatar] = useState(() => pickBotAvatar(exam?.id));
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,6 +72,10 @@ export function ChatPanel({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesAreaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setBotAvatar(pickBotAvatar(exam?.id));
+  }, [exam?.id]);
 
   // Hydrate a question forwarded from Study Path courseware ("Ask AskFinBots").
   useEffect(() => {
