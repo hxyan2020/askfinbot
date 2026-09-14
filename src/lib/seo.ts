@@ -9,125 +9,144 @@ export type PublicSeoPage =
   | "about"
   | "contact"
   | "terms"
+  | "privacy"
   | "cart"
   | "cartSuccess"
   | "profile";
 
 type PageSeo = {
+  /** Browser / SERP title (without brand suffix when absoluteTitle is set) */
   title: string;
   description: string;
   path: string;
   keywords: string[];
   /** Soft noindex for account/checkout utility pages */
   noIndex?: boolean;
+  /** Use absolute title (no "| AskFinBots" template suffix) */
+  absoluteTitle?: boolean;
   ogTitle?: string;
   ogDescription?: string;
 };
 
 /**
  * Central SEO copy for public routes.
- * Keyword strategy (directional, 2025–26 exam-prep market):
- * - High intent / competitive: "CFA Level 1 study", "FRM Part 1 prep", "ACCA tutor", "CPA exam prep"
- * - Long-tail opportunity: "CFA Level 1 ethics vignette explained", "FRM Basel III summary",
- *   "ACCA FR study plan", "finance exam mind map", "CFA flashcards LOS"
- * - Product differentiators to pair with exams: AI tutor, Study Path, syllabus mind map, flashcards
- * - AEO: lead descriptions with a clear answer of what the page does for which exams
+ * Audience: candidates preparing for CFA, FRM, ACCA, CPA, CAIA, CFP, SIE, CIMA, CMT, CFA ESG.
+ * Mix head terms (exam + tutor/prep) with long-tail (study plan, mind map, flashcards, syllabus).
  */
 export const PAGE_SEO: Record<PublicSeoPage, PageSeo> = {
   home: {
-    title: "AskFinBots — AI Tutor for CFA, FRM & ACCA",
+    title: "AI Tutor for CFA, FRM, ACCA & CPA Exams",
+    absoluteTitle: true,
     description:
-      "Ask exam-focused questions for CFA, FRM, ACCA, CPA and more. Get syllabus-aligned answers, formulas, and study guidance — start with free tokens.",
+      "AskFinBots is an AI tutor for CFA Level 1–3, FRM Part 1–2, ACCA, CPA and more. Get syllabus-aligned answers, Study Path plans, mind maps and flashcards — start free.",
     path: "/",
     keywords: [
-      "CFA Level 1 tutor",
-      "FRM Part 1 study",
-      "ACCA exam AI tutor",
+      "CFA Level 1 AI tutor",
+      "CFA exam prep chatbot",
+      "FRM Part 1 study help",
+      "ACCA AI tutor",
       "CPA exam prep AI",
-      "finance qualification tutor",
-      "CFA study chatbot",
+      "finance exam AI tutor",
+      "CFA study plan online",
       "AskFinBots",
     ],
-    ogTitle: "AskFinBots — AI tutor for CFA, FRM, ACCA & more",
+    ogTitle: "AskFinBots — AI Tutor for CFA, FRM, ACCA & CPA",
     ogDescription:
-      "Syllabus-aware AI tutoring for major finance exams. Ask questions, follow Study Path, and revise with mind maps and flashcards.",
+      "Syllabus-aware AI tutoring for major finance exams. Ask questions, build a Study Path, and revise with mind maps and flashcards.",
   },
   study: {
-    title: "Study Path — Finance Exam Roadmap & Plan",
+    title: "Study Path — CFA, FRM & ACCA Exam Roadmap",
     description:
-      "Build a syllabus roadmap and weekly study plan for CFA, FRM, ACCA, CPA and other finance exams. Track modules and hours until exam day.",
+      "Build a personalized CFA, FRM, ACCA or CPA study plan from the syllabus. Get weekly focus, module hours, and a roadmap you can track until exam day.",
     path: "/study",
     keywords: [
-      "CFA study plan",
+      "CFA Level 1 study plan",
       "FRM study schedule",
       "ACCA study roadmap",
       "CPA exam study plan",
       "finance exam syllabus plan",
-      "Study Path AskFinBots",
+      "personalized CFA study path",
+      "weekly CFA revision plan",
     ],
   },
   mindmap: {
-    title: "Finance Exam Mind Maps — CFA, FRM, ACCA",
+    title: "CFA, FRM & ACCA Syllabus Mind Maps",
     description:
-      "Interactive syllabus mind maps for CFA, FRM, ACCA, CPA and more. See topic areas at a glance, then drill into Study Path lessons.",
+      "Interactive mind maps of CFA, FRM, ACCA, CPA and other finance exam syllabi. See every topic area at a glance, then jump into Study Path lessons.",
     path: "/mindmap",
     keywords: [
       "CFA Level 1 mind map",
-      "FRM syllabus map",
+      "FRM Part 1 syllabus map",
       "ACCA topic mind map",
-      "finance exam mind map",
+      "finance exam curriculum map",
       "CFA curriculum overview",
+      "interactive syllabus mind map",
     ],
   },
   flashcards: {
-    title: "Finance Exam Flashcards by Subject",
+    title: "CFA, FRM & ACCA Flashcards by Subject",
     description:
-      "Save formulas and explanations from AskFinBots into exam-specific flashcards. Organized by subject for CFA, FRM, ACCA, CPA and more.",
+      "Turn AskFinBots answers into exam flashcards for CFA, FRM, ACCA and CPA. Save formulas and explanations, sorted by subject for faster revision.",
     path: "/flashcards",
     keywords: [
       "CFA flashcards",
-      "FRM flashcards",
+      "FRM formula flashcards",
       "ACCA revision cards",
       "CPA study flashcards",
       "finance exam flashcards",
+      "CFA Level 1 flashcards online",
     ],
   },
   about: {
-    title: "About — Specialist AI for Finance Exams",
+    title: "About AskFinBots — Specialist Finance Exam AI",
     description:
-      "AskFinBots is built for CFA, FRM, ACCA, CPA and related quals — not generic chat. Exam-focused tutoring with Study Path, mind maps, and mentor support.",
+      "Learn why AskFinBots is built for CFA, FRM, ACCA and CPA candidates — not generic chat. Exam-focused tutoring with Study Path, mind maps, flashcards and mentor support.",
     path: "/about",
     keywords: [
       "AskFinBots about",
       "AI finance exam tutor",
       "CFA AI study tool",
       "specialist finance chatbot",
+      "best AI for CFA study",
     ],
   },
   contact: {
     title: "Contact AskFinBots Support",
     description:
-      "Contact AskFinBots for account help, technical support, feedback, or partnerships. Reach us by email or Telegram.",
+      "Get help with your AskFinBots account, tokens, Study Path, or partnerships. Contact support by email or Telegram for CFA, FRM and ACCA tutoring questions.",
     path: "/contact",
-    keywords: ["AskFinBots contact", "finance tutor support", "AskFinBots Telegram"],
+    keywords: [
+      "AskFinBots contact",
+      "finance tutor support",
+      "AskFinBots Telegram",
+      "CFA AI tutor help",
+    ],
   },
   terms: {
     title: "Terms of Use",
     description:
-      "Terms of Use for AskFinBots AI tutoring for finance qualification exams. Educational use only — not official exam materials.",
+      "Terms of Use for AskFinBots AI tutoring for CFA, FRM, ACCA, CPA and other finance exams. Educational study support only — not official exam materials.",
     path: "/terms",
-    keywords: ["AskFinBots terms", "terms of use"],
+    keywords: ["AskFinBots terms of use", "finance exam tutor terms"],
+  },
+  privacy: {
+    title: "Privacy Policy",
+    description:
+      "How AskFinBots collects and uses account, Google sign-in, chat history and payment data when you study for CFA, FRM, ACCA and other finance exams.",
+    path: "/privacy",
+    keywords: ["AskFinBots privacy policy", "finance tutor data privacy"],
   },
   cart: {
-    title: "Token Plans for Finance Exam Tutoring",
+    title: "Token Plans — CFA & FRM AI Tutoring Pricing",
     description:
-      "Compare AskFinBots Starter, Plus and Pro monthly token plans for CFA, FRM, ACCA and other finance exam AI tutoring. Secure Stripe checkout.",
+      "Compare AskFinBots Starter, Plus and Pro monthly token plans for CFA, FRM, ACCA and CPA AI tutoring. Free registration tokens, then upgrade via secure Stripe checkout.",
     path: "/cart",
     keywords: [
       "AskFinBots pricing",
-      "CFA AI tutor price",
-      "finance exam tutoring subscription",
-      "AskFinBots tokens",
+      "CFA AI tutor subscription",
+      "FRM tutoring cost",
+      "finance exam AI subscription",
+      "AskFinBots token plans",
     ],
   },
   cartSuccess: {
@@ -154,6 +173,8 @@ const DEFAULT_KEYWORDS = [
   "FRM prep",
   "ACCA tutor",
   "CPA exam prep",
+  "CAIA study",
+  "CFP exam prep",
 ];
 
 export function absoluteUrl(path: string): string {
@@ -163,10 +184,14 @@ export function absoluteUrl(path: string): string {
 
 export function buildPageMetadata(page: PublicSeoPage): Metadata {
   const seo = PAGE_SEO[page];
-  const title = seo.title;
+  const title = seo.absoluteTitle
+    ? { absolute: `${seo.title} | ${SITE_NAME}` }
+    : seo.title;
   const description = seo.description;
   const url = absoluteUrl(seo.path);
   const keywords = [...new Set([...seo.keywords, ...DEFAULT_KEYWORDS])];
+  const ogTitle = seo.ogTitle || `${seo.title} | ${SITE_NAME}`;
+  const ogDescription = seo.ogDescription || description;
 
   return {
     title,
@@ -176,8 +201,8 @@ export function buildPageMetadata(page: PublicSeoPage): Metadata {
       canonical: url,
     },
     openGraph: {
-      title: seo.ogTitle || `${title} | ${SITE_NAME}`,
-      description: seo.ogDescription || description,
+      title: ogTitle,
+      description: ogDescription,
       url,
       siteName: SITE_NAME,
       type: "website",
@@ -187,19 +212,29 @@ export function buildPageMetadata(page: PublicSeoPage): Metadata {
           url: absoluteUrl("/logo.png"),
           width: 512,
           height: 512,
-          alt: `${SITE_NAME} logo`,
+          alt: `${SITE_NAME} — AI tutor for CFA, FRM, ACCA and CPA`,
         },
       ],
     },
     twitter: {
       card: "summary",
-      title: seo.ogTitle || `${title} | ${SITE_NAME}`,
-      description: seo.ogDescription || description,
+      title: ogTitle,
+      description: ogDescription,
       images: [absoluteUrl("/logo.png")],
     },
     robots: seo.noIndex
       ? { index: false, follow: false, googleBot: { index: false, follow: false } }
-      : { index: true, follow: true },
+      : {
+          index: true,
+          follow: true,
+          googleBot: {
+            index: true,
+            follow: true,
+            "max-image-preview": "large",
+            "max-snippet": -1,
+            "max-video-preview": -1,
+          },
+        },
   };
 }
 
@@ -229,8 +264,9 @@ export function websiteJsonLd() {
     name: SITE_NAME,
     url: SITE_URL,
     description:
-      "Ask exam-focused questions and follow structured study tools for major financial qualifications.",
+      "AI tutor and study tools for CFA, FRM, ACCA, CPA and other finance qualification exams.",
     publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
+    inLanguage: "en",
   };
 }
 
@@ -257,6 +293,10 @@ export function softwareApplicationJsonLd() {
       "Interactive syllabus mind maps",
       "Subject-sorted flashcards",
     ],
+    audience: {
+      "@type": "EducationalAudience",
+      educationalRole: "student",
+    },
   };
 }
 
@@ -297,18 +337,30 @@ export function faqJsonLd() {
           text: "AskFinBots is study support only and is not affiliated with CFA Institute, GARP, ACCA, AICPA, or other awarding bodies. Use it alongside official readings and approved prep materials.",
         },
       },
+      {
+        "@type": "Question",
+        name: "Who is AskFinBots for?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Candidates preparing for competitive finance certifications who need fast, syllabus-aware explanations plus a weekly study plan, mind map overview, and flashcards for revision.",
+        },
+      },
     ],
   };
 }
 
-export const INDEXABLE_PATHS: { path: string; priority: number; changeFrequency: "weekly" | "monthly" | "yearly" }[] =
-  [
-    { path: "/", priority: 1, changeFrequency: "weekly" },
-    { path: "/study", priority: 0.9, changeFrequency: "weekly" },
-    { path: "/mindmap", priority: 0.9, changeFrequency: "weekly" },
-    { path: "/flashcards", priority: 0.8, changeFrequency: "weekly" },
-    { path: "/about", priority: 0.7, changeFrequency: "monthly" },
-    { path: "/cart", priority: 0.7, changeFrequency: "monthly" },
-    { path: "/contact", priority: 0.5, changeFrequency: "yearly" },
-    { path: "/terms", priority: 0.3, changeFrequency: "yearly" },
-  ];
+export const INDEXABLE_PATHS: {
+  path: string;
+  priority: number;
+  changeFrequency: "weekly" | "monthly" | "yearly";
+}[] = [
+  { path: "/", priority: 1, changeFrequency: "weekly" },
+  { path: "/study", priority: 0.9, changeFrequency: "weekly" },
+  { path: "/mindmap", priority: 0.9, changeFrequency: "weekly" },
+  { path: "/flashcards", priority: 0.85, changeFrequency: "weekly" },
+  { path: "/about", priority: 0.8, changeFrequency: "monthly" },
+  { path: "/cart", priority: 0.7, changeFrequency: "monthly" },
+  { path: "/contact", priority: 0.5, changeFrequency: "yearly" },
+  { path: "/terms", priority: 0.3, changeFrequency: "yearly" },
+  { path: "/privacy", priority: 0.3, changeFrequency: "yearly" },
+];

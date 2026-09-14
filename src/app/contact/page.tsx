@@ -20,11 +20,11 @@ export default function ContactPage() {
                 Contact our team
               </p>
               <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight text-white min-[380px]:text-4xl sm:mt-3 sm:text-5xl">
-                We&apos;re here to help
+                Contact AskFinBots support
               </h1>
               <p className="mt-3 max-w-lg text-sm leading-relaxed text-slate-300 sm:mt-4 sm:text-base">
-                Whether you need account assistance, technical support, or want to help shape the
-                future of {SITE_NAME}, our team would be glad to hear from you.
+                Account help, Study Path questions, token plans, or partnerships — our team supports
+                CFA, FRM, ACCA and CPA candidates using {SITE_NAME}.
               </p>
               <div className="mt-5 sm:mt-7">
                 <a

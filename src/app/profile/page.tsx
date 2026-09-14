@@ -20,6 +20,8 @@ type PublicUser = {
   examId: string | null;
   tokens: number;
   unlimitedTokens?: boolean;
+  hasPassword?: boolean;
+  hasGoogle?: boolean;
   membership?: {
     status: "none" | "active" | "canceling";
     packageId: string | null;
@@ -105,6 +107,7 @@ export default function ProfilePage() {
   const [nameSaved, setNameSaved] = useState(false);
   const [staySignedIn, setStaySignedIn] = useState(true);
   const [acceptedTerms, setAcceptedTerms] = useState(true);
+  const [googleAuthEnabled, setGoogleAuthEnabled] = useState(false);
 
   async function refreshUser() {
     const nextUser = await fetchCurrentUser();
@@ -117,6 +120,24 @@ export default function ProfilePage() {
 
   useEffect(() => {
     let active = true;
+    void fetch("/api/auth/providers", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (active) setGoogleAuthEnabled(Boolean(data.google));
+      })
+      .catch(() => {
+        if (active) setGoogleAuthEnabled(false);
+      });
+
+    const params = new URLSearchParams(window.location.search);
+    const authError = params.get("authError");
+    if (authError) {
+      setError(authError);
+      params.delete("authError");
+      const cleaned = `${window.location.pathname}${params.toString() ? `?${params}` : ""}`;
+      window.history.replaceState({}, "", cleaned);
+    }
+
     void fetchCurrentUser()
       .then((nextUser) => {
         if (!active) return;
@@ -281,6 +302,7 @@ export default function ProfilePage() {
       await refreshUser();
       setMessage(mode === "register" ? "Welcome! Your account is ready." : "Logged in successfully.");
       setPassword("");
+      window.dispatchEvent(new Event("askfinbot:auth"));
       if (data.user?.examId) localStorage.setItem(EXAM_STORAGE_KEY, data.user.examId);
       const next = new URLSearchParams(window.location.search).get("next");
       if (next?.startsWith("/") && !next.startsWith("//")) router.push(next);
@@ -296,6 +318,7 @@ export default function ProfilePage() {
     await fetch("/api/auth/logout", { method: "POST" });
     setUser(null);
     setMessage("Logged out.");
+    window.dispatchEvent(new Event("askfinbot:auth"));
   }
 
   async function saveName(e: FormEvent) {
@@ -387,9 +410,13 @@ export default function ProfilePage() {
       <Header />
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6">
         <div className="mb-6">
-          <h1 className="font-display text-3xl font-semibold text-navy">My Profile</h1>
+          <h1 className="font-display text-3xl font-semibold text-navy">
+            {user ? "My Profile" : "Log In"}
+          </h1>
           <p className="mt-2 text-sm text-muted">
-            Manage your account, qualification track, tokens, and password.
+            {user
+              ? "Manage your account, qualification track, tokens, and password."
+              : "Sign in with Google or email to use AskFinBots."}
           </p>
         </div>
 
@@ -432,6 +459,56 @@ export default function ProfilePage() {
                 </button>
               ))}
             </div>
+
+            {mode !== "reset" && (
+              <label className="mb-4 flex cursor-pointer items-start gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 accent-navy"
+                  checked={staySignedIn}
+                  onChange={(e) => setStaySignedIn(e.target.checked)}
+                />
+                <span>Stay signed in forever on this device</span>
+              </label>
+            )}
+
+            {googleAuthEnabled && mode !== "reset" && (
+              <div className="mb-5 space-y-3">
+                <a
+                  href={`/api/auth/google?next=${encodeURIComponent(
+                    typeof window !== "undefined"
+                      ? new URLSearchParams(window.location.search).get("next") || "/profile"
+                      : "/profile"
+                  )}&staySignedIn=${staySignedIn ? "1" : "0"}`}
+                  className="flex w-full items-center justify-center gap-3 rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-semibold text-navy shadow-sm transition hover:bg-slate-50"
+                >
+                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5">
+                    <path
+                      fill="#4285F4"
+                      d="M23.49 12.27c0-.79-.07-1.54-.2-2.27H12v4.3h6.44a5.5 5.5 0 0 1-2.39 3.61v3h3.87c2.26-2.08 3.57-5.14 3.57-8.64Z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 24c3.24 0 5.96-1.07 7.95-2.91l-3.87-3a7.2 7.2 0 0 1-10.77-3.79H1.3v3.1A12 12 0 0 0 12 24Z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.31 14.3a7.2 7.2 0 0 1 0-4.6V6.6H1.3a12 12 0 0 0 0 10.8l4.01-3.1Z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12 4.75c1.76 0 3.34.61 4.58 1.8l3.43-3.43C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.3 6.6l4.01 3.1A7.17 7.17 0 0 1 12 4.75Z"
+                    />
+                  </svg>
+                  Continue with Google
+                </a>
+                <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-muted">
+                  <span className="h-px flex-1 bg-line" />
+                  or use email
+                  <span className="h-px flex-1 bg-line" />
+                </div>
+              </div>
+            )}
 
             <form onSubmit={onAuthSubmit} className="space-y-3">
               {mode === "register" && (
@@ -498,17 +575,6 @@ export default function ProfilePage() {
                   </p>
                 </>
               )}
-              {mode !== "reset" && (
-                <label className="flex cursor-pointer items-start gap-2 text-sm text-slate-700">
-                  <input
-                    type="checkbox"
-                    className="mt-0.5 h-4 w-4 accent-navy"
-                    checked={staySignedIn}
-                    onChange={(e) => setStaySignedIn(e.target.checked)}
-                  />
-                  <span>Stay signed in forever on this device</span>
-                </label>
-              )}
               {mode === "register" && (
                 <label className="flex cursor-pointer items-start gap-2 text-sm text-slate-700">
                   <input
@@ -551,8 +617,7 @@ export default function ProfilePage() {
                   ["billing", "Orders & payment"],
                   ["security", "Password"],
                 ] as const
-              )
-                .map(([id, label]) => (
+              ).map(([id, label]) => (
                 <button
                   key={id}
                   type="button"
@@ -563,15 +628,18 @@ export default function ProfilePage() {
                 >
                   {label}
                 </button>
-                ))}
-              <button type="button" onClick={logout} className="rounded-full border border-line px-3 py-1.5 text-sm text-red-600">
-                Log out
-              </button>
+              ))}
             </div>
 
             {tab === "account" && (
               <section className="surface-card space-y-4 p-6">
                 <p className="text-sm text-muted">Signed in as {user.email}</p>
+                <p className="text-xs text-muted">
+                  Sign-in methods:{" "}
+                  {[user.hasPassword !== false ? "Email & password" : null, user.hasGoogle ? "Google" : null]
+                    .filter(Boolean)
+                    .join(" · ") || "Email & password"}
+                </p>
                 <form onSubmit={saveName} className="space-y-3">
                   <label className="admin-label">
                     Display name
@@ -588,6 +656,15 @@ export default function ProfilePage() {
                     {nameSaved ? "Profile saved" : busy ? "Saving…" : "Save profile"}
                   </button>
                 </form>
+                <div className="border-t border-line pt-4">
+                  <button
+                    type="button"
+                    onClick={logout}
+                    className="text-sm font-semibold text-red-600 underline-offset-2 hover:underline"
+                  >
+                    Log out
+                  </button>
+                </div>
               </section>
             )}
 
@@ -934,18 +1011,27 @@ export default function ProfilePage() {
 
             {tab === "security" && (
               <section className="surface-card p-6">
-                <h2 className="mb-4 text-base font-semibold text-navy">Change password</h2>
+                <h2 className="mb-2 text-base font-semibold text-navy">
+                  {user.hasPassword === false ? "Set a password" : "Change password"}
+                </h2>
+                {user.hasPassword === false && (
+                  <p className="mb-4 text-sm text-muted">
+                    You signed in with Google. Optionally set a password so you can also log in with email.
+                  </p>
+                )}
                 <form onSubmit={changePasswordSubmit} className="space-y-3">
-                  <label className="admin-label">
-                    Current password
-                    <input
-                      className="admin-input"
-                      type="password"
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      required
-                    />
-                  </label>
+                  {user.hasPassword !== false && (
+                    <label className="admin-label">
+                      Current password
+                      <input
+                        className="admin-input"
+                        type="password"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        required
+                      />
+                    </label>
+                  )}
                   <label className="admin-label">
                     New password
                     <input

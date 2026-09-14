@@ -6,7 +6,6 @@ import { SITE_NAME, SITE_URL } from "@/lib/constants";
 import { JsonLd } from "@/components/JsonLd";
 import {
   buildPageMetadata,
-  faqJsonLd,
   organizationJsonLd,
   softwareApplicationJsonLd,
   websiteJsonLd,
@@ -23,11 +22,14 @@ const fraunces = Fraunces({
 });
 
 const home = buildPageMetadata("home");
+const googleVerification = process.env.GOOGLE_SITE_VERIFICATION?.trim();
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: typeof home.title === "string" ? `${home.title} | ${SITE_NAME}` : SITE_NAME,
+    default: typeof home.title === "object" && home.title && "absolute" in home.title
+      ? String(home.title.absolute)
+      : `${SITE_NAME} — AI Tutor for CFA, FRM & ACCA`,
     template: `%s | ${SITE_NAME}`,
   },
   description: home.description,
@@ -40,6 +42,7 @@ export const metadata: Metadata = {
   openGraph: home.openGraph,
   twitter: home.twitter,
   robots: home.robots,
+  verification: googleVerification ? { google: googleVerification } : undefined,
   icons: {
     icon: [{ url: "/logo.png", type: "image/png" }],
     shortcut: "/logo.png",
@@ -55,14 +58,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${sourceSans.variable} ${fraunces.variable} h-full`}>
       <body className="flex min-h-full flex-col antialiased">
-        <JsonLd
-          data={[
-            organizationJsonLd(),
-            websiteJsonLd(),
-            softwareApplicationJsonLd(),
-            faqJsonLd(),
-          ]}
-        />
+        <JsonLd data={[organizationJsonLd(), websiteJsonLd(), softwareApplicationJsonLd()]} />
         {children}
       </body>
     </html>

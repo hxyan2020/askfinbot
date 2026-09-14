@@ -123,12 +123,12 @@ export default function MindmapPage() {
         <div className="mb-6">
           <p className="text-sm font-semibold uppercase tracking-wide text-gold">Study map</p>
           <h1 className="font-display mt-1 text-3xl font-semibold text-navy sm:text-4xl">
-            Qualification mind maps
+            CFA, FRM &amp; ACCA syllabus mind maps
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted">
-            Browse syllabus modules and topic areas for CFA, FRM, ACCA, CPA and other finance exams.
-            The map starts fully expanded — fold nodes, zoom, and pan to revise the big picture before
-            you drill into Study Path courseware.
+            Browse interactive syllabus mind maps for CFA Level 1–3, FRM Part 1–2, ACCA, CPA and other
+            finance exams. Fold nodes, zoom, and pan to see the big picture before you drill into
+            Study Path courseware.
           </p>
         </div>
 

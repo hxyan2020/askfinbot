@@ -24,8 +24,14 @@ export function Footer() {
           <Link href="/flashcards" className="footer-link">
             Flashcards
           </Link>
+          <Link href="/cart" className="footer-link">
+            Token plans
+          </Link>
           <Link href="/terms" className="footer-link">
             Terms of Use
+          </Link>
+          <Link href="/privacy" className="footer-link">
+            Privacy Policy
           </Link>
           <Link href="/contact" className="footer-link">
             Contact Us

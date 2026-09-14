@@ -2,19 +2,40 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { SITE_NAME } from "@/lib/constants";
 
 export function Header() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    async function refreshAuth() {
+      try {
+        const res = await fetch("/api/auth/me", { cache: "no-store" });
+        const data = await res.json();
+        if (active) setLoggedIn(Boolean(data.user));
+      } catch {
+        if (active) setLoggedIn(false);
+      }
+    }
+    void refreshAuth();
+    window.addEventListener("askfinbot:auth", refreshAuth);
+    return () => {
+      active = false;
+      window.removeEventListener("askfinbot:auth", refreshAuth);
+    };
+  }, [pathname]);
+
   const navItems = [
     { href: "/", label: "Ask Bot" },
     { href: "/study", label: "Study Path" },
     { href: "/mindmap", label: "Mindmap" },
     { href: "/flashcards", label: "Flashcards" },
-    { href: "/profile", label: "My Profile" },
+    { href: "/profile", label: loggedIn ? "My Profile" : "Log In" },
     { href: "/about", label: "About" },
     { href: "/contact", label: "Contact" },
   ];
@@ -36,9 +57,9 @@ export function Header() {
             priority
           />
           <div className="min-w-0">
-            <h1 className="font-display truncate text-xl font-semibold tracking-tight text-navy sm:text-2xl">
+            <p className="font-display truncate text-xl font-semibold tracking-tight text-navy sm:text-2xl">
               {SITE_NAME}
-            </h1>
+            </p>
             <p className="hidden text-xs text-muted min-[380px]:block">Study smarter for finance exams</p>
           </div>
         </Link>

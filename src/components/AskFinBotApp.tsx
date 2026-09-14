@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -132,34 +131,38 @@ export function AskFinBotApp() {
     });
   }, [router, unlimitedTokens]);
 
-  if (!authChecked) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Image src="/logo.png" alt="AskFinBots" width={56} height={56} className="h-14 w-14 object-contain" />
-      </div>
-    );
-  }
-
-  if (!user) {
+  // Render marketing content while auth loads so crawlers/SSR get real H1 + copy (not an empty spinner).
+  if (!authChecked || !user) {
     return (
       <>
         <Header />
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-12 sm:px-6 sm:py-16">
-          <section className="mx-auto max-w-xl text-center">
-            <p className="text-sm font-medium text-gold">Financial exam tutor</p>
-            <h2 className="font-display mt-2 text-3xl font-semibold tracking-tight text-navy sm:text-4xl">
-              Log in to use AskFinBots
-            </h2>
+          <section className="mx-auto max-w-2xl text-center">
+            <p className="text-sm font-medium text-gold">AI tutor for finance exams</p>
+            <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight text-navy sm:text-4xl">
+              AI tutor for CFA, FRM, ACCA &amp; CPA exams
+            </h1>
             <p className="mt-4 text-sm leading-relaxed text-muted sm:text-base">
-              Free trial tokens are tied to your account so they can&apos;t be refreshed by clearing
-              the browser. Create an account to get {FREE_TOKENS} free tokens, then ask questions or
-              open Study Path.
+              AskFinBots gives syllabus-aligned answers for CFA Level 1–3, FRM Part 1–2, ACCA, CPA,
+              CAIA, CFP and more — plus Study Path roadmaps, interactive mind maps, and flashcards.
+              Create an account to get {FREE_TOKENS} free tokens and start studying.
             </p>
-            <div className="mt-8 flex justify-center">
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Link href="/profile" className="btn-rainbow">
-                Login to start study!
+                {authChecked ? "Login to start study!" : "Get free tokens"}
+              </Link>
+              <Link href="/about" className="text-sm font-semibold text-navy underline-offset-2 hover:underline">
+                Why AskFinBots
+              </Link>
+              <Link href="/study" className="text-sm font-semibold text-navy underline-offset-2 hover:underline">
+                Study Path
               </Link>
             </div>
+            {!authChecked && (
+              <p className="mt-4 text-xs text-muted" aria-live="polite">
+                Checking your session…
+              </p>
+            )}
           </section>
 
           <section className="mx-auto mt-12 max-w-2xl" aria-label="How AskFinBots works">

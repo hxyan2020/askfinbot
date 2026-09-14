@@ -2,16 +2,18 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { JsonLd } from "@/components/JsonLd";
 import { SITE_NAME } from "@/lib/constants";
 import { MENTORS } from "@/lib/mentors";
 import { FINANCIAL_EXAMS } from "@/lib/exams";
-import { buildPageMetadata } from "@/lib/seo";
+import { buildPageMetadata, faqJsonLd } from "@/lib/seo";
 
 export const metadata: Metadata = buildPageMetadata("about");
 
 export default function AboutPage() {
   return (
     <>
+      <JsonLd data={faqJsonLd()} />
       <Header />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6">
         <section className="mb-12 max-w-3xl">

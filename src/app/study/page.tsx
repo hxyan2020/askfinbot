@@ -315,9 +315,12 @@ export default function StudyPathPage() {
       <>
         <Header />
         <main className="mx-auto max-w-xl flex-1 px-4 py-16 text-center">
-          <h1 className="font-display text-3xl font-semibold text-navy">Study Path</h1>
+          <h1 className="font-display text-3xl font-semibold text-navy">
+            Study Path for CFA, FRM, ACCA &amp; CPA
+          </h1>
           <p className="mt-3 text-sm text-muted">
-            Full syllabus roadmaps, personalized strategies, and progress tracking require an account so we can save your portfolio securely.
+            Build a personalized syllabus roadmap and weekly study plan for CFA Level 1–3, FRM,
+            ACCA, CPA and other finance exams. Log in so we can save your portfolio securely.
           </p>
           <Link href="/profile" className="btn-primary mt-6 inline-flex">
             Log in to continue
@@ -334,10 +337,12 @@ export default function StudyPathPage() {
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 sm:px-6">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="font-display text-3xl font-semibold text-navy">Study Path</h1>
+            <h1 className="font-display text-3xl font-semibold text-navy">
+              Study Path for CFA, FRM, ACCA &amp; CPA
+            </h1>
             <p className="mt-2 text-sm text-muted">
               Syllabus roadmap, personalized strategy, and progress tracking for CFA, FRM, ACCA, CPA
-              and other finance qualifications.
+              and related finance qualifications.
             </p>
           </div>
           {portfolio && (

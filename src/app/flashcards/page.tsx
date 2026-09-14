@@ -209,9 +209,12 @@ export default function FlashcardsPage() {
       <>
         <Header />
         <main className="mx-auto max-w-xl flex-1 px-4 py-16 text-center">
-          <h1 className="font-display text-3xl font-semibold text-navy">Flashcards</h1>
+          <h1 className="font-display text-3xl font-semibold text-navy">
+            CFA, FRM &amp; ACCA flashcards by subject
+          </h1>
           <p className="mt-3 text-sm text-muted">
-            Log in to save paragraphs and formulas from AskFinBots replies into exam-specific flashcards.
+            Log in to save formulas and explanations from AskFinBots into exam-specific flashcards
+            for CFA, FRM, ACCA, CPA and more.
           </p>
           <Link href="/profile" className="btn-primary mt-6 inline-flex">
             Log in to continue
@@ -227,7 +230,9 @@ export default function FlashcardsPage() {
       <Header />
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 sm:px-6">
         <div className="mb-6">
-          <h1 className="font-display text-3xl font-semibold text-navy">Flashcards</h1>
+          <h1 className="font-display text-3xl font-semibold text-navy">
+            CFA, FRM &amp; ACCA flashcards by subject
+          </h1>
           <p className="mt-2 text-sm text-muted">
             Save formulas and explanations from AskFinBots into exam-specific flashcards for CFA,
             FRM, ACCA, CPA and more. Cards are sorted by subject for faster revision.

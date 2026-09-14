@@ -12,7 +12,9 @@ export interface UserRecord {
   id: string;
   email: string;
   name: string;
-  passwordHash: string;
+  /** Null/empty for Google-only accounts until they set a password. */
+  passwordHash: string | null;
+  googleId?: string | null;
   examId: string | null;
   tokens: number;
   createdAt: string;
@@ -41,6 +43,8 @@ export type PublicUser = {
   tokens: number;
   unlimitedTokens: boolean;
   membership: MembershipSnapshot;
+  hasPassword: boolean;
+  hasGoogle: boolean;
 };
 
 const USERS_FILE = path.join(process.cwd(), "data", "users.json");
@@ -118,6 +122,8 @@ function toPublic(user: UserRecord): PublicUser {
     tokens: unlimited ? Math.max(user.tokens, 999999) : user.tokens,
     unlimitedTokens: unlimited,
     membership: membershipOf(user),
+    hasPassword: Boolean(user.passwordHash),
+    hasGoogle: Boolean(user.googleId),
   };
 }
 
@@ -133,6 +139,11 @@ export async function findUserByEmail(email: string): Promise<UserRecord | null>
 export async function findUserById(id: string): Promise<UserRecord | null> {
   const users = await readUsers();
   return users.find((u) => u.id === id) || null;
+}
+
+export async function findUserByGoogleId(googleId: string): Promise<UserRecord | null> {
+  const users = await readUsers();
+  return users.find((u) => u.googleId === googleId) || null;
 }
 
 export const PASSWORD_REQUIREMENTS =
@@ -178,14 +189,66 @@ export async function createUser(input: {
 
 export async function verifyUserPassword(email: string, password: string): Promise<UserRecord | null> {
   const user = await findUserByEmail(email);
-  if (!user) return null;
+  if (!user?.passwordHash) return null;
   const ok = await bcrypt.compare(password, user.passwordHash);
   return ok ? user : null;
 }
 
+/** Create or link a user from a verified Google profile (email must be verified by Google). */
+export async function upsertGoogleUser(input: {
+  googleId: string;
+  email: string;
+  name: string;
+}): Promise<PublicUser> {
+  const email = normalizeEmail(input.email);
+  const googleId = String(input.googleId || "").trim();
+  if (!email || !googleId) {
+    throw new Error("Google account is missing a verified email.");
+  }
+  const displayName = input.name.trim() || email.split("@")[0];
+  const now = new Date().toISOString();
+
+  return mutateUsers((users) => {
+    const byGoogle = users.find((u) => u.googleId === googleId);
+    if (byGoogle) {
+      byGoogle.name = byGoogle.name || displayName;
+      byGoogle.email = email;
+      byGoogle.updatedAt = now;
+      return toPublic(byGoogle);
+    }
+
+    const byEmail = users.find((u) => u.email === email);
+    if (byEmail) {
+      byEmail.googleId = googleId;
+      if (!byEmail.name) byEmail.name = displayName;
+      byEmail.updatedAt = now;
+      return toPublic(byEmail);
+    }
+
+    const user: UserRecord = {
+      id: crypto.randomUUID(),
+      email,
+      name: displayName,
+      passwordHash: null,
+      googleId,
+      examId: null,
+      tokens: FREE_TOKENS,
+      createdAt: now,
+      updatedAt: now,
+    };
+    users.push(user);
+    return toPublic(user);
+  });
+}
+
 export async function updateUser(
   userId: string,
-  patch: Partial<Pick<UserRecord, "name" | "examId" | "tokens" | "passwordHash" | "resetTokenHash" | "resetTokenExpiresAt">>
+  patch: Partial<
+    Pick<
+      UserRecord,
+      "name" | "examId" | "tokens" | "passwordHash" | "googleId" | "resetTokenHash" | "resetTokenExpiresAt"
+    >
+  >
 ): Promise<PublicUser | null> {
   return mutateUsers((users) => {
     const idx = users.findIndex((u) => u.id === userId);
@@ -408,8 +471,10 @@ export async function clearStripeSubscription(userId: string): Promise<boolean> 
 export async function changePassword(userId: string, currentPassword: string, newPassword: string) {
   const user = await findUserById(userId);
   if (!user) throw new Error("User not found.");
-  const ok = await bcrypt.compare(currentPassword, user.passwordHash);
-  if (!ok) throw new Error("Current password is incorrect.");
+  if (user.passwordHash) {
+    const ok = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!ok) throw new Error("Current password is incorrect.");
+  }
   validatePassword(newPassword);
   await updateUser(userId, { passwordHash: await bcrypt.hash(newPassword, 10) });
 }

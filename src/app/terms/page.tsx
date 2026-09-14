@@ -117,10 +117,11 @@ export default function TermsPage() {
           <div>
             <h2 className="font-display mb-2 text-lg font-semibold text-navy">8. Privacy</h2>
             <p>
-              {SITE_NAME} requires an account for chatbot use and Study Path. Account details, token
-              balances, study portfolios, and purchase records are stored securely on our servers. Chat
-              messages are transmitted to third-party AI providers (Google and DeepSeek) for processing.
-              We do not sell personal data. For questions about data handling, please contact us via our{" "}
+              How we collect and use personal data is described in our{" "}
+              <Link href="/privacy" className="font-medium text-navy underline underline-offset-2">
+                Privacy Policy
+              </Link>
+              . For questions about data handling, please also use our{" "}
               <Link href="/contact" className="font-medium text-navy underline underline-offset-2">
                 Contact page
               </Link>
