@@ -209,7 +209,7 @@ export function buildPageMetadata(page: PublicSeoPage): Metadata {
       locale: "en_US",
       images: [
         {
-          url: absoluteUrl("/logo.png"),
+          url: absoluteUrl("/icons/icon-512.png"),
           width: 512,
           height: 512,
           alt: `${SITE_NAME} — AI tutor for CFA, FRM, ACCA and CPA`,
@@ -220,7 +220,7 @@ export function buildPageMetadata(page: PublicSeoPage): Metadata {
       card: "summary",
       title: ogTitle,
       description: ogDescription,
-      images: [absoluteUrl("/logo.png")],
+      images: [absoluteUrl("/icons/icon-512.png")],
     },
     robots: seo.noIndex
       ? { index: false, follow: false, googleBot: { index: false, follow: false } }
@@ -244,7 +244,7 @@ export function organizationJsonLd() {
     "@type": "Organization",
     name: SITE_NAME,
     url: SITE_URL,
-    logo: absoluteUrl("/logo.png"),
+    logo: absoluteUrl("/icons/icon-512.png"),
     description:
       "AI tutoring platform for CFA, FRM, ACCA, CPA, CAIA, CFP, SIE, CIMA, CMT and CFA ESG exam preparation.",
     sameAs: [],

@@ -4,6 +4,7 @@ import "katex/dist/katex.min.css";
 import "./globals.css";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
 import { JsonLd } from "@/components/JsonLd";
+import { PwaInstallProvider } from "@/contexts/PwaInstallContext";
 import {
   buildPageMetadata,
   organizationJsonLd,
@@ -44,9 +45,19 @@ export const metadata: Metadata = {
   robots: home.robots,
   verification: googleVerification ? { google: googleVerification } : undefined,
   icons: {
-    icon: [{ url: "/logo.png", type: "image/png" }],
-    shortcut: "/logo.png",
-    apple: "/logo.png",
+    icon: [
+      { url: "/logo-hd.png", type: "image/png", sizes: "1024x1588" },
+      { url: "/icons/icon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/icons/icon-512.png", type: "image/png", sizes: "512x512" },
+    ],
+    shortcut: "/logo-hd.png",
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  manifest: "/site.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: SITE_NAME,
+    statusBarStyle: "default",
   },
 };
 
@@ -59,7 +70,7 @@ export default function RootLayout({
     <html lang="en" className={`${sourceSans.variable} ${fraunces.variable} h-full`}>
       <body className="flex min-h-full flex-col antialiased">
         <JsonLd data={[organizationJsonLd(), websiteJsonLd(), softwareApplicationJsonLd()]} />
-        {children}
+        <PwaInstallProvider>{children}</PwaInstallProvider>
       </body>
     </html>
   );

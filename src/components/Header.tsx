@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { SITE_NAME } from "@/lib/constants";
+import { AddToHomeScreenButton } from "@/components/AddToHomeScreenButton";
 
 export function Header() {
   const pathname = usePathname();
@@ -49,10 +50,12 @@ export function Header() {
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
         <Link href="/" className="flex min-w-0 items-center gap-2.5 sm:gap-3">
           <Image
-            src="/logo.png"
+            src="/logo-hd.png"
             alt={`${SITE_NAME} logo`}
-            width={44}
-            height={44}
+            width={88}
+            height={136}
+            sizes="44px"
+            quality={100}
             className="h-10 w-10 shrink-0 object-contain sm:h-11 sm:w-11"
             priority
           />
@@ -121,6 +124,7 @@ export function Header() {
                 </Link>
               );
             })}
+            <AddToHomeScreenButton onFinished={() => setMobileMenuOpen(false)} />
           </div>
         </nav>
       )}

@@ -143,7 +143,9 @@ export async function POST(request: NextRequest) {
         "customer" | "customer_email"
       > = user.stripeCustomerId
         ? { customer: user.stripeCustomerId }
-        : { customer_email: user.email };
+        : user.email && !user.email.endsWith("@users.askfinbots.local")
+          ? { customer_email: user.email }
+          : {};
 
       const discounts: Stripe.Checkout.SessionCreateParams.Discount[] | undefined =
         hasTwentyOff

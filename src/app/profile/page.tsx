@@ -12,16 +12,20 @@ import {
   EXAM_STORAGE_KEY,
   FREE_TOKENS,
 } from "@/lib/constants";
+import { PhoneSignIn } from "@/components/PhoneSignIn";
 
 type PublicUser = {
   id: string;
   email: string;
   name: string;
+  phone?: string | null;
   examId: string | null;
   tokens: number;
   unlimitedTokens?: boolean;
   hasPassword?: boolean;
   hasGoogle?: boolean;
+  hasPhone?: boolean;
+  lastLoginMethod?: "password" | "google" | "sms" | null;
   membership?: {
     status: "none" | "active" | "canceling";
     packageId: string | null;
@@ -47,6 +51,31 @@ type Purchase = {
 
 const PASSWORD_HINT =
   "At least 8 characters, including an uppercase letter, a lowercase letter, and a number.";
+
+function loginMethodLabel(method?: string | null): string {
+  if (method === "google") return "Google";
+  if (method === "sms") return "Phone (SMS)";
+  if (method === "password") return "Email & password";
+  return "";
+}
+
+function linkedMethods(user: PublicUser): string {
+  return (
+    [
+      user.hasPassword ? "Email & password" : null,
+      user.hasGoogle ? "Google" : null,
+      user.hasPhone ? "Phone (SMS)" : null,
+    ]
+      .filter(Boolean)
+      .join(" · ") || "Unknown"
+  );
+}
+
+function signedInAs(user: PublicUser): string {
+  if (user.lastLoginMethod === "sms" && user.phone) return user.phone;
+  if (user.phone && (!user.email || user.email.endsWith("@users.askfinbots.local"))) return user.phone;
+  return user.email;
+}
 
 function getInitialTab(): Tab {
   if (typeof window === "undefined") return "account";
@@ -108,6 +137,7 @@ export default function ProfilePage() {
   const [staySignedIn, setStaySignedIn] = useState(true);
   const [acceptedTerms, setAcceptedTerms] = useState(true);
   const [googleAuthEnabled, setGoogleAuthEnabled] = useState(false);
+  const [smsAuthEnabled, setSmsAuthEnabled] = useState(false);
 
   async function refreshUser() {
     const nextUser = await fetchCurrentUser();
@@ -123,10 +153,14 @@ export default function ProfilePage() {
     void fetch("/api/auth/providers", { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
-        if (active) setGoogleAuthEnabled(Boolean(data.google));
+        if (!active) return;
+        setGoogleAuthEnabled(Boolean(data.google));
+        setSmsAuthEnabled(Boolean(data.sms));
       })
       .catch(() => {
-        if (active) setGoogleAuthEnabled(false);
+        if (!active) return;
+        setGoogleAuthEnabled(false);
+        setSmsAuthEnabled(false);
       });
 
     const params = new URLSearchParams(window.location.search);
@@ -185,6 +219,10 @@ export default function ProfilePage() {
       .catch((err) => setError(err instanceof Error ? err.message : "Could not load billing."))
       .finally(() => setBillingLoaded(true));
   }, [tab, userId]);
+
+  useEffect(() => {
+    if (user && !user.hasPassword && tab === "security") setTab("account");
+  }, [user, tab]);
 
   function selectTab(nextTab: Tab) {
     if ((nextTab === "billing" || nextTab === "tokens") && tab !== nextTab) {
@@ -472,36 +510,57 @@ export default function ProfilePage() {
               </label>
             )}
 
-            {googleAuthEnabled && mode !== "reset" && (
+            {mode !== "reset" && (googleAuthEnabled || smsAuthEnabled) && (
               <div className="mb-5 space-y-3">
-                <a
-                  href={`/api/auth/google?next=${encodeURIComponent(
-                    typeof window !== "undefined"
-                      ? new URLSearchParams(window.location.search).get("next") || "/profile"
-                      : "/profile"
-                  )}&staySignedIn=${staySignedIn ? "1" : "0"}`}
-                  className="flex w-full items-center justify-center gap-3 rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-semibold text-navy shadow-sm transition hover:bg-slate-50"
-                >
-                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5">
-                    <path
-                      fill="#4285F4"
-                      d="M23.49 12.27c0-.79-.07-1.54-.2-2.27H12v4.3h6.44a5.5 5.5 0 0 1-2.39 3.61v3h3.87c2.26-2.08 3.57-5.14 3.57-8.64Z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M12 24c3.24 0 5.96-1.07 7.95-2.91l-3.87-3a7.2 7.2 0 0 1-10.77-3.79H1.3v3.1A12 12 0 0 0 12 24Z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M5.31 14.3a7.2 7.2 0 0 1 0-4.6V6.6H1.3a12 12 0 0 0 0 10.8l4.01-3.1Z"
-                    />
-                    <path
-                      fill="#EA4335"
-                      d="M12 4.75c1.76 0 3.34.61 4.58 1.8l3.43-3.43C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.3 6.6l4.01 3.1A7.17 7.17 0 0 1 12 4.75Z"
-                    />
-                  </svg>
-                  Continue with Google
-                </a>
+                {googleAuthEnabled && (
+                  <a
+                    href={`/api/auth/google?next=${encodeURIComponent(
+                      typeof window !== "undefined"
+                        ? new URLSearchParams(window.location.search).get("next") || "/profile"
+                        : "/profile"
+                    )}&staySignedIn=${staySignedIn ? "1" : "0"}`}
+                    className="flex w-full items-center justify-center gap-3 rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-semibold text-navy shadow-sm transition hover:bg-slate-50"
+                  >
+                    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5">
+                      <path
+                        fill="#4285F4"
+                        d="M23.49 12.27c0-.79-.07-1.54-.2-2.27H12v4.3h6.44a5.5 5.5 0 0 1-2.39 3.61v3h3.87c2.26-2.08 3.57-5.14 3.57-8.64Z"
+                      />
+                      <path
+                        fill="#34A853"
+                        d="M12 24c3.24 0 5.96-1.07 7.95-2.91l-3.87-3a7.2 7.2 0 0 1-10.77-3.79H1.3v3.1A12 12 0 0 0 12 24Z"
+                      />
+                      <path
+                        fill="#FBBC05"
+                        d="M5.31 14.3a7.2 7.2 0 0 1 0-4.6V6.6H1.3a12 12 0 0 0 0 10.8l4.01-3.1Z"
+                      />
+                      <path
+                        fill="#EA4335"
+                        d="M12 4.75c1.76 0 3.34.61 4.58 1.8l3.43-3.43C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.3 6.6l4.01 3.1A7.17 7.17 0 0 1 12 4.75Z"
+                      />
+                    </svg>
+                    Continue with Google
+                  </a>
+                )}
+                {smsAuthEnabled && (
+                  <PhoneSignIn
+                    staySignedIn={staySignedIn}
+                    busy={busy}
+                    setBusy={setBusy}
+                    onError={(message) => {
+                      setMessage(null);
+                      setError(message || null);
+                    }}
+                    onSignedIn={async (smsUser) => {
+                      await refreshUser();
+                      setMessage("Logged in with SMS.");
+                      window.dispatchEvent(new Event("askfinbot:auth"));
+                      if (smsUser?.examId) localStorage.setItem(EXAM_STORAGE_KEY, smsUser.examId);
+                      const next = new URLSearchParams(window.location.search).get("next");
+                      if (next?.startsWith("/") && !next.startsWith("//")) router.push(next);
+                    }}
+                  />
+                )}
                 <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-muted">
                   <span className="h-px flex-1 bg-line" />
                   or use email
@@ -545,6 +604,10 @@ export default function ProfilePage() {
               )}
               {mode === "reset" && (
                 <>
+                  <p className="rounded-lg border border-line bg-slate-50 px-3 py-2 text-xs text-muted">
+                    Password reset is only for accounts created with email and password. Google and
+                    SMS sign-in do not use a password — sign in with those methods instead.
+                  </p>
                   <label className="admin-label">
                     Reset code
                     <input
@@ -615,7 +678,7 @@ export default function ProfilePage() {
                   ["exam", "Qualification track"],
                   ["tokens", "Token plans"],
                   ["billing", "Orders & payment"],
-                  ["security", "Password"],
+                  ...(user.hasPassword ? ([["security", "Password"]] as const) : []),
                 ] as const
               ).map(([id, label]) => (
                 <button
@@ -633,13 +696,19 @@ export default function ProfilePage() {
 
             {tab === "account" && (
               <section className="surface-card space-y-4 p-6">
-                <p className="text-sm text-muted">Signed in as {user.email}</p>
-                <p className="text-xs text-muted">
-                  Sign-in methods:{" "}
-                  {[user.hasPassword !== false ? "Email & password" : null, user.hasGoogle ? "Google" : null]
-                    .filter(Boolean)
-                    .join(" · ") || "Email & password"}
-                </p>
+                <p className="text-sm text-muted">Signed in as {signedInAs(user)}</p>
+                {loginMethodLabel(user.lastLoginMethod) && (
+                  <p className="text-sm font-semibold text-navy">
+                    Logged in with {loginMethodLabel(user.lastLoginMethod)}
+                  </p>
+                )}
+                <p className="text-xs text-muted">Linked methods: {linkedMethods(user)}</p>
+                {!user.hasPassword && (
+                  <p className="text-xs text-muted">
+                    Password reset is not used for this account because you sign in with{" "}
+                    {linkedMethods(user)}.
+                  </p>
+                )}
                 <form onSubmit={saveName} className="space-y-3">
                   <label className="admin-label">
                     Display name
@@ -1009,29 +1078,20 @@ export default function ProfilePage() {
               </section>
             )}
 
-            {tab === "security" && (
+            {tab === "security" && user.hasPassword && (
               <section className="surface-card p-6">
-                <h2 className="mb-2 text-base font-semibold text-navy">
-                  {user.hasPassword === false ? "Set a password" : "Change password"}
-                </h2>
-                {user.hasPassword === false && (
-                  <p className="mb-4 text-sm text-muted">
-                    You signed in with Google. Optionally set a password so you can also log in with email.
-                  </p>
-                )}
+                <h2 className="mb-2 text-base font-semibold text-navy">Change password</h2>
                 <form onSubmit={changePasswordSubmit} className="space-y-3">
-                  {user.hasPassword !== false && (
-                    <label className="admin-label">
-                      Current password
-                      <input
-                        className="admin-input"
-                        type="password"
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        required
-                      />
-                    </label>
-                  )}
+                  <label className="admin-label">
+                    Current password
+                    <input
+                      className="admin-input"
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      required
+                    />
+                  </label>
                   <label className="admin-label">
                     New password
                     <input

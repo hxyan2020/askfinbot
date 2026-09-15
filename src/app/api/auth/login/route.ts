@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createUserSessionToken, USER_COOKIE } from "@/lib/user-auth";
-import { createUser, toPublic, verifyUserPassword } from "@/lib/users";
+import { createUser, toPublic, updateUser, verifyUserPassword } from "@/lib/users";
 import { sessionCookieOptions } from "@/lib/cookie-options";
 
 export async function POST(request: NextRequest) {
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     if (!record) {
       return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
     }
-    const user = toPublic(record);
+    const user = (await updateUser(record.id, { lastLoginMethod: "password" })) || toPublic(record);
     const token = await createUserSessionToken(user.id, { staySignedIn });
     const res = NextResponse.json({ user });
     res.cookies.set(USER_COOKIE, token, cookieOpts);

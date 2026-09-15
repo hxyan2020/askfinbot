@@ -12,9 +12,12 @@ export interface UserRecord {
   id: string;
   email: string;
   name: string;
-  /** Null/empty for Google-only accounts until they set a password. */
+  /** Null/empty for Google/SMS-only accounts until they set a password. */
   passwordHash: string | null;
   googleId?: string | null;
+  /** E.164 mobile number for SMS login. */
+  phone?: string | null;
+  lastLoginMethod?: "password" | "google" | "sms" | null;
   examId: string | null;
   tokens: number;
   createdAt: string;
@@ -39,13 +42,26 @@ export type PublicUser = {
   id: string;
   email: string;
   name: string;
+  phone: string | null;
   examId: string | null;
   tokens: number;
   unlimitedTokens: boolean;
   membership: MembershipSnapshot;
   hasPassword: boolean;
   hasGoogle: boolean;
+  hasPhone: boolean;
+  lastLoginMethod: "password" | "google" | "sms" | null;
 };
+
+const SMS_EMAIL_DOMAIN = "users.askfinbots.local";
+
+export function isPlaceholderEmail(email: string | null | undefined): boolean {
+  return Boolean(email?.toLowerCase().endsWith(`@${SMS_EMAIL_DOMAIN}`));
+}
+
+export function phonePlaceholderEmail(e164: string): string {
+  return `sms.${e164.replace(/\D/g, "")}@${SMS_EMAIL_DOMAIN}`;
+}
 
 const USERS_FILE = path.join(process.cwd(), "data", "users.json");
 let mutationQueue: Promise<unknown> = Promise.resolve();
@@ -118,12 +134,15 @@ function toPublic(user: UserRecord): PublicUser {
     id: user.id,
     email: user.email,
     name: user.name,
+    phone: user.phone || null,
     examId: user.examId,
     tokens: unlimited ? Math.max(user.tokens, 999999) : user.tokens,
     unlimitedTokens: unlimited,
     membership: membershipOf(user),
     hasPassword: Boolean(user.passwordHash),
     hasGoogle: Boolean(user.googleId),
+    hasPhone: Boolean(user.phone),
+    lastLoginMethod: user.lastLoginMethod || null,
   };
 }
 
@@ -144,6 +163,11 @@ export async function findUserById(id: string): Promise<UserRecord | null> {
 export async function findUserByGoogleId(googleId: string): Promise<UserRecord | null> {
   const users = await readUsers();
   return users.find((u) => u.googleId === googleId) || null;
+}
+
+export async function findUserByPhone(phone: string): Promise<UserRecord | null> {
+  const users = await readUsers();
+  return users.find((u) => u.phone === phone) || null;
 }
 
 export const PASSWORD_REQUIREMENTS =
@@ -172,6 +196,7 @@ export async function createUser(input: {
     email,
     name: input.name.trim() || email.split("@")[0],
     passwordHash: await bcrypt.hash(input.password, 10),
+    lastLoginMethod: "password",
     examId: null,
     tokens: FREE_TOKENS,
     createdAt: now,
@@ -213,6 +238,7 @@ export async function upsertGoogleUser(input: {
     if (byGoogle) {
       byGoogle.name = byGoogle.name || displayName;
       byGoogle.email = email;
+      byGoogle.lastLoginMethod = "google";
       byGoogle.updatedAt = now;
       return toPublic(byGoogle);
     }
@@ -221,6 +247,7 @@ export async function upsertGoogleUser(input: {
     if (byEmail) {
       byEmail.googleId = googleId;
       if (!byEmail.name) byEmail.name = displayName;
+      byEmail.lastLoginMethod = "google";
       byEmail.updatedAt = now;
       return toPublic(byEmail);
     }
@@ -231,6 +258,41 @@ export async function upsertGoogleUser(input: {
       name: displayName,
       passwordHash: null,
       googleId,
+      lastLoginMethod: "google",
+      examId: null,
+      tokens: FREE_TOKENS,
+      createdAt: now,
+      updatedAt: now,
+    };
+    users.push(user);
+    return toPublic(user);
+  });
+}
+
+/** Create or return a user after Twilio Verify succeeds. */
+export async function upsertPhoneUser(e164: string): Promise<PublicUser> {
+  const phone = String(e164 || "").trim();
+  if (!phone.startsWith("+")) {
+    throw new Error("A valid mobile number is required.");
+  }
+  const now = new Date().toISOString();
+  const placeholderEmail = phonePlaceholderEmail(phone);
+
+  return mutateUsers((users) => {
+    const byPhone = users.find((u) => u.phone === phone);
+    if (byPhone) {
+      byPhone.lastLoginMethod = "sms";
+      byPhone.updatedAt = now;
+      return toPublic(byPhone);
+    }
+
+    const user: UserRecord = {
+      id: crypto.randomUUID(),
+      email: placeholderEmail,
+      name: phone,
+      passwordHash: null,
+      phone,
+      lastLoginMethod: "sms",
       examId: null,
       tokens: FREE_TOKENS,
       createdAt: now,
@@ -246,7 +308,15 @@ export async function updateUser(
   patch: Partial<
     Pick<
       UserRecord,
-      "name" | "examId" | "tokens" | "passwordHash" | "googleId" | "resetTokenHash" | "resetTokenExpiresAt"
+      | "name"
+      | "examId"
+      | "tokens"
+      | "passwordHash"
+      | "googleId"
+      | "phone"
+      | "lastLoginMethod"
+      | "resetTokenHash"
+      | "resetTokenExpiresAt"
     >
   >
 ): Promise<PublicUser | null> {
@@ -481,8 +551,8 @@ export async function changePassword(userId: string, currentPassword: string, ne
 
 export async function createPasswordResetToken(email: string): Promise<string> {
   const user = await findUserByEmail(email);
-  if (!user) {
-    // Don't reveal whether email exists
+  if (!user?.passwordHash) {
+    // Password reset is only for email/password accounts. Do not reveal account type.
     throw new Error("If that email exists, a reset code has been created.");
   }
   const token = Math.random().toString(36).slice(2, 8).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();

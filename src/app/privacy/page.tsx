@@ -45,6 +45,11 @@ export default function PrivacyPage() {
                 your Google password.
               </li>
               <li>
+                <strong>Phone / SMS sign-in:</strong> if you choose Continue with SMS, we store your
+                mobile number in E.164 format and send a one-time code through Twilio Verify. We do
+                not receive SMS message contents beyond delivery status.
+              </li>
+              <li>
                 <strong>Study content:</strong> questions you ask, AI replies, study portfolio items,
                 flashcards, and mentor conversation threads you start.
               </li>
@@ -62,7 +67,7 @@ export default function PrivacyPage() {
           <div>
             <h2 className="font-display mb-2 text-lg font-semibold text-navy">3. How we use information</h2>
             <ul className="list-disc space-y-2 pl-5">
-              <li>Create and authenticate your account (email/password or Google).</li>
+              <li>Create and authenticate your account (email/password, Google, or SMS).</li>
               <li>Provide tutoring, Study Path, mind maps, flashcards, and mentor escalation.</li>
               <li>Manage free tokens, paid plans, and customer support.</li>
               <li>Improve reliability, prevent abuse, and meet legal obligations.</li>
@@ -73,8 +78,9 @@ export default function PrivacyPage() {
             <h2 className="font-display mb-2 text-lg font-semibold text-navy">4. AI and subprocessors</h2>
             <p>
               Chat messages are sent to third-party AI providers (currently Google Gemini and/or
-              DeepSeek) to generate study answers. Payment processing is handled by Stripe. Do not
-              submit sensitive personal data you would not want processed by these providers.
+              DeepSeek) to generate study answers. Payment processing is handled by Stripe. SMS
+              one-time codes are sent by Twilio. Do not submit sensitive personal data you would not
+              want processed by these providers.
             </p>
           </div>
 
