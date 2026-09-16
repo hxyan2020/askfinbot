@@ -69,6 +69,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${sourceSans.variable} ${fraunces.variable} h-full`}>
       <body className="flex min-h-full flex-col antialiased">
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{window.__pwaDeferredPrompt=null;if("serviceWorker"in navigator){navigator.serviceWorker.register("/sw.js").then(function(reg){if(reg.waiting)reg.waiting.postMessage({type:"SKIP_WAITING"})}).catch(function(){})}window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__pwaDeferredPrompt=e;try{localStorage.removeItem("askfinbot-installed")}catch(err){}window.dispatchEvent(new Event("pwa-installable"))});window.addEventListener("appinstalled",function(){window.__pwaDeferredPrompt=null;try{localStorage.setItem("askfinbot-installed","1")}catch(err){}})}catch(e){}})();`,
+          }}
+        />
         <JsonLd data={[organizationJsonLd(), websiteJsonLd(), softwareApplicationJsonLd()]} />
         <PwaInstallProvider>{children}</PwaInstallProvider>
       </body>
