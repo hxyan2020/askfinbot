@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { ContentRewriteChat } from "@/components/ContentRewriteChat";
 
 interface DocSummary {
   id: string;
@@ -11,7 +12,10 @@ interface DocSummary {
   fileName?: string;
   chunkCount: number;
   charCount: number;
+  createdAt: string;
   updatedAt: string;
+  createdBy?: "human" | "ai";
+  lastModifiedBy?: "human" | "ai";
 }
 
 const DOC_TYPES = [
@@ -20,6 +24,23 @@ const DOC_TYPES = [
   { value: "notes", label: "Notes" },
   { value: "other", label: "Other" },
 ];
+
+function stamp(iso?: string) {
+  if (!iso) return "Unknown";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function authorLabel(author?: "human" | "ai") {
+  return author === "ai" ? "suggested by AI" : "by human";
+}
 
 export default function AdminExamDocumentsPage() {
   const params = useParams<{ examId: string }>();
@@ -35,6 +56,14 @@ export default function AdminExamDocumentsPage() {
   const [editTitle, setEditTitle] = useState("");
   const [editType, setEditType] = useState("textbook");
   const [editContent, setEditContent] = useState("");
+  const [contentAuthor, setContentAuthor] = useState<"human" | "ai">("human");
+  const [editMeta, setEditMeta] = useState<{
+    createdAt?: string;
+    updatedAt?: string;
+    createdBy?: "human" | "ai";
+    lastModifiedBy?: "human" | "ai";
+  } | null>(null);
+  const [selection, setSelection] = useState<{ start: number; end: number; text: string } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -103,6 +132,16 @@ export default function AdminExamDocumentsPage() {
     }
   }
 
+  function captureSelection(el: HTMLTextAreaElement) {
+    if (selection) return;
+    const start = el.selectionStart ?? 0;
+    const end = el.selectionEnd ?? 0;
+    if (end <= start) return;
+    const text = editContent.slice(start, end);
+    if (!text.trim()) return;
+    setSelection({ start, end, text });
+  }
+
   async function startEdit(doc: DocSummary) {
     setBusy(true);
     setError(null);
@@ -118,6 +157,14 @@ export default function AdminExamDocumentsPage() {
       setEditTitle(data.document.title);
       setEditType(data.document.type);
       setEditContent(data.document.content);
+      setContentAuthor(data.document.lastModifiedBy === "ai" ? "ai" : "human");
+      setEditMeta({
+        createdAt: data.document.createdAt,
+        updatedAt: data.document.updatedAt,
+        createdBy: data.document.createdBy,
+        lastModifiedBy: data.document.lastModifiedBy,
+      });
+      setSelection(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Edit failed");
     } finally {
@@ -139,12 +186,14 @@ export default function AdminExamDocumentsPage() {
           title: editTitle,
           type: editType,
           content: editContent,
+          lastModifiedBy: contentAuthor,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Update failed");
       setMessage(`Updated “${data.document.title}”.`);
       setEditingId(null);
+      setEditMeta(null);
       const nextDocuments = await fetchDocs();
       if (nextDocuments) setDocuments(nextDocuments);
     } catch (err) {
@@ -165,7 +214,10 @@ export default function AdminExamDocumentsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Delete failed");
       setMessage(`Deleted “${doc.title}”.`);
-      if (editingId === doc.id) setEditingId(null);
+      if (editingId === doc.id) {
+        setEditingId(null);
+        setEditMeta(null);
+      }
       const nextDocuments = await fetchDocs();
       if (nextDocuments) setDocuments(nextDocuments);
     } catch (err) {
@@ -249,6 +301,12 @@ export default function AdminExamDocumentsPage() {
                     {doc.type} · {doc.chunkCount} chunks · {doc.charCount.toLocaleString()} chars
                     {doc.fileName ? ` · ${doc.fileName}` : ""}
                   </p>
+                  <p className="text-xs text-slate-500">
+                    Created {stamp(doc.createdAt)} · {authorLabel(doc.createdBy)}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Last modified {stamp(doc.updatedAt)} · {authorLabel(doc.lastModifiedBy)}
+                  </p>
                 </div>
                 <div className="flex gap-2">
                   <button type="button" className="admin-btn-secondary" onClick={() => startEdit(doc)} disabled={busy}>
@@ -266,7 +324,17 @@ export default function AdminExamDocumentsPage() {
 
       {editingId && (
         <section className="admin-card mt-6">
-          <h2 className="mb-4 text-base font-semibold text-slate-900">Edit document</h2>
+          <h2 className="mb-1 text-base font-semibold text-slate-900">Edit document</h2>
+          <p className="mb-1 text-xs text-slate-500">
+            Created {stamp(editMeta?.createdAt)} · {authorLabel(editMeta?.createdBy)}
+          </p>
+          <p className="mb-1 text-xs text-slate-500">
+            Last modified {stamp(editMeta?.updatedAt)} · {authorLabel(editMeta?.lastModifiedBy)}
+          </p>
+          <p className="mb-4 text-xs text-slate-500">
+            Select a word or paragraph, then say what to improve. Accept replaces that selection.
+            Unsaved edit: {authorLabel(contentAuthor)}.
+          </p>
           <form onSubmit={saveEdit} className="space-y-3">
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="admin-label">
@@ -289,7 +357,14 @@ export default function AdminExamDocumentsPage() {
               <textarea
                 className="admin-input min-h-64 font-mono text-xs"
                 value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
+                onChange={(e) => {
+                  setEditContent(e.target.value);
+                  setContentAuthor("human");
+                }}
+                onMouseUp={(e) => captureSelection(e.currentTarget)}
+                onKeyUp={(e) => {
+                  if (e.key === "Shift" || e.key.startsWith("Arrow")) captureSelection(e.currentTarget);
+                }}
                 required
               />
             </label>
@@ -297,12 +372,26 @@ export default function AdminExamDocumentsPage() {
               <button type="submit" className="admin-btn" disabled={busy}>
                 Save changes
               </button>
-              <button type="button" className="admin-btn-secondary" onClick={() => setEditingId(null)}>
+              <button type="button" className="admin-btn-secondary" onClick={() => { setEditingId(null); setEditMeta(null); }}>
                 Cancel
               </button>
             </div>
           </form>
         </section>
+      )}
+
+      {selection && (
+        <ContentRewriteChat
+          selected={selection.text}
+          onClose={() => setSelection(null)}
+          onAccept={(replacement) => {
+            setEditContent(
+              (current) => current.slice(0, selection.start) + replacement + current.slice(selection.end)
+            );
+            setContentAuthor("ai");
+            setSelection(null);
+          }}
+        />
       )}
     </div>
   );

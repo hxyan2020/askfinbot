@@ -113,6 +113,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     title: body.title,
     type: body.type,
     content: body.content,
+    lastModifiedBy: body.lastModifiedBy === "ai" ? "ai" : "human",
   });
 
   if (!updated) return NextResponse.json({ error: "Document not found." }, { status: 404 });
@@ -124,6 +125,10 @@ export async function PUT(request: NextRequest, { params }: Params) {
       chunkCount: updated.chunks.length,
       charCount: updated.content.length,
       content: updated.content,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+      createdBy: updated.createdBy || "human",
+      lastModifiedBy: updated.lastModifiedBy || "human",
     },
   });
 }

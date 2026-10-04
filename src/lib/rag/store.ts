@@ -1,7 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { chunkText } from "./chunk";
-import type { RagDocType, RagDocument, RagDocumentSummary } from "./types";
+import type { ContentAuthor, RagDocType, RagDocument, RagDocumentSummary } from "./types";
 
 const DATA_ROOT = path.join(process.cwd(), "data", "rag");
 
@@ -28,6 +28,8 @@ function toSummary(doc: RagDocument): RagDocumentSummary {
     charCount: doc.content.length,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
+    createdBy: doc.createdBy || "human",
+    lastModifiedBy: doc.lastModifiedBy || "human",
   };
 }
 
@@ -83,6 +85,11 @@ export async function saveDocument(input: {
     chunks: chunkText(content),
     createdAt: existing?.createdAt || now,
     updatedAt: now,
+    createdBy: existing?.createdBy || "human",
+    lastModifiedBy:
+      existing && existing.content === content
+        ? existing.lastModifiedBy || "human"
+        : "human",
   };
   await fs.writeFile(docPath(input.examId, id), JSON.stringify(doc, null, 2), "utf8");
   return doc;
@@ -91,18 +98,25 @@ export async function saveDocument(input: {
 export async function updateDocumentMeta(
   examId: string,
   docId: string,
-  patch: { title?: string; type?: RagDocType; content?: string }
+  patch: { title?: string; type?: RagDocType; content?: string; lastModifiedBy?: ContentAuthor }
 ): Promise<RagDocument | null> {
   const existing = await getDocument(examId, docId);
   if (!existing) return null;
 
   const content = patch.content !== undefined ? patch.content.trim() : existing.content;
+  const contentChanged = patch.content !== undefined && content !== existing.content;
   const updated: RagDocument = {
     ...existing,
     title: patch.title?.trim() || existing.title,
     type: patch.type || existing.type,
     content,
-    chunks: patch.content !== undefined ? chunkText(content) : existing.chunks,
+    chunks: contentChanged ? chunkText(content) : existing.chunks,
+    createdBy: existing.createdBy || "human",
+    lastModifiedBy: contentChanged
+      ? patch.lastModifiedBy === "ai"
+        ? "ai"
+        : "human"
+      : existing.lastModifiedBy || "human",
     updatedAt: new Date().toISOString(),
   };
   await fs.writeFile(docPath(examId, docId), JSON.stringify(updated, null, 2), "utf8");

@@ -1,4 +1,5 @@
 export type RagDocType = "textbook" | "testbank" | "notes" | "other";
+export type ContentAuthor = "human" | "ai";
 
 export interface RagChunk {
   id: string;
@@ -17,6 +18,10 @@ export interface RagDocument {
   chunks: RagChunk[];
   createdAt: string;
   updatedAt: string;
+  /** Who first saved this material. */
+  createdBy?: ContentAuthor;
+  /** Who last changed the body text. */
+  lastModifiedBy?: ContentAuthor;
 }
 
 export interface RagDocumentSummary {
@@ -29,4 +34,6 @@ export interface RagDocumentSummary {
   charCount: number;
   createdAt: string;
   updatedAt: string;
+  createdBy: ContentAuthor;
+  lastModifiedBy: ContentAuthor;
 }
