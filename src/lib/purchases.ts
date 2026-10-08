@@ -24,6 +24,18 @@ export interface PurchaseRecord {
   createdAt: string;
   updatedAt: string;
   paidAt?: string;
+  /** membership = monthly token plan; product = one-time shop order */
+  kind?: "membership" | "product";
+  orderNumber?: string;
+  quantity?: number;
+  preference?: string;
+  customerEmail?: string;
+  /** Tracking / shipping number entered by admin. Buyers do not type this. */
+  shippingNumber?: string;
+  shippingUpdatedAt?: string;
+  confirmationEmailAt?: string;
+  shippingEmailAt?: string;
+  emailError?: string;
 }
 
 export type PublicPurchase = Omit<PurchaseRecord, "userId" | "stripeEventId">;
@@ -70,6 +82,12 @@ function mutate<T>(fn: (items: PurchaseRecord[]) => T | Promise<T>): Promise<T> 
   return operation;
 }
 
+export function createOrderNumber(): string {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = crypto.getRandomValues(new Uint8Array(6));
+  return `AF-${Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("")}`;
+}
+
 export async function createPendingPurchase(input: {
   userId: string;
   packageId: string;
@@ -81,11 +99,18 @@ export async function createPendingPurchase(input: {
   promoCodeId?: string;
   promoCode?: string;
   promoTier?: "percent_20" | "percent_100";
+  kind?: "membership" | "product";
+  quantity?: number;
+  preference?: string;
+  customerEmail?: string;
 }): Promise<PurchaseRecord> {
   const now = new Date().toISOString();
   const purchase: PurchaseRecord = {
     id: crypto.randomUUID(),
+    orderNumber: createOrderNumber(),
     ...input,
+    kind: input.kind || "membership",
+    quantity: input.quantity && input.quantity > 0 ? input.quantity : 1,
     status: "pending",
     createdAt: now,
     updatedAt: now,
@@ -138,6 +163,11 @@ export async function markPurchasePaid(input: {
     };
     return items[index];
   });
+}
+
+export async function listPurchases(): Promise<PurchaseRecord[]> {
+  const items = await readPurchases();
+  return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export async function getPurchaseById(id: string): Promise<PurchaseRecord | null> {

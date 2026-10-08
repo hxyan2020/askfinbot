@@ -517,12 +517,12 @@ export async function cancelMembershipAtPeriodEnd(
 
 export async function setStripeCustomerId(
   userId: string,
-  stripeCustomerId: string
+  stripeCustomerId: string | null
 ): Promise<boolean> {
   return mutateUsers((users) => {
     const user = users.find((item) => item.id === userId);
     if (!user) return false;
-    user.stripeCustomerId = stripeCustomerId;
+    user.stripeCustomerId = stripeCustomerId || null;
     user.updatedAt = new Date().toISOString();
     return true;
   });

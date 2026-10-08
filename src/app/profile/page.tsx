@@ -11,6 +11,8 @@ import { TOKEN_PACKAGES, formatPrice } from "@/lib/token-packages";
 import {
   EXAM_STORAGE_KEY,
   FREE_TOKENS,
+  TELEGRAM_CONTACT,
+  TELEGRAM_URL,
 } from "@/lib/constants";
 import { PhoneSignIn } from "@/components/PhoneSignIn";
 
@@ -40,8 +42,13 @@ type Tab = "account" | "exam" | "tokens" | "billing" | "security";
 
 type Purchase = {
   id: string;
+  orderNumber?: string;
   packageName: string;
   tokens: number;
+  quantity?: number;
+  preference?: string;
+  shippingNumber?: string;
+  kind?: "membership" | "product";
   amountCents: number;
   currency: string;
   status: "pending" | "paid" | "expired" | "failed" | "refunded";
@@ -996,8 +1003,8 @@ export default function ProfilePage() {
                   <div>
                     <h2 className="text-base font-semibold text-navy">Payment methods</h2>
                     <p className="mt-1 max-w-xl text-sm text-muted">
-                      Manage cards and other saved payment methods in the Stripe customer portal.
-                      AskFinBots never receives your full card number.
+                      Cards, Link, and other methods enabled in Stripe can be saved and updated in the
+                      customer portal. AskFinBots never receives your full card number.
                     </p>
                   </div>
                   <button
@@ -1030,25 +1037,42 @@ export default function ProfilePage() {
                     </p>
                   ) : (
                     <div className="mt-4 overflow-x-auto">
-                      <table className="w-full min-w-[620px] text-left text-sm">
+                      <table className="w-full min-w-[860px] text-left text-sm">
                         <thead>
                           <tr className="border-b border-line text-xs uppercase tracking-wide text-muted">
                             <th className="pb-2 font-semibold">Date</th>
-                            <th className="pb-2 font-semibold">Package</th>
-                            <th className="pb-2 font-semibold">Tokens</th>
+                            <th className="pb-2 font-semibold">Order</th>
+                            <th className="pb-2 font-semibold">Product</th>
+                            <th className="pb-2 font-semibold">Qty</th>
+                            <th className="pb-2 font-semibold">Preference</th>
+                            <th className="pb-2 font-semibold">Shipping number</th>
                             <th className="pb-2 font-semibold">Amount</th>
                             <th className="pb-2 font-semibold">Status</th>
-                            <th className="pb-2 font-semibold">Order</th>
                           </tr>
                         </thead>
                         <tbody>
                           {purchases.map((purchase) => (
-                            <tr key={purchase.id} className="border-b border-line/70">
+                            <tr key={purchase.id} className="border-b border-line/70 align-top">
                               <td className="py-3 text-muted">
                                 {new Date(purchase.paidAt || purchase.createdAt).toLocaleDateString()}
                               </td>
-                              <td className="py-3 font-medium text-navy">{purchase.packageName}</td>
-                              <td className="py-3">{purchase.tokens}</td>
+                              <td className="py-3 font-mono text-xs text-navy">
+                                {purchase.orderNumber || purchase.id.slice(0, 8).toUpperCase()}
+                              </td>
+                              <td className="py-3 font-medium text-navy">
+                                {purchase.packageName}
+                                {purchase.kind !== "product" && purchase.tokens > 0
+                                  ? ` · ${purchase.tokens} tokens`
+                                  : ""}
+                              </td>
+                              <td className="py-3">{purchase.quantity || 1}</td>
+                              <td className="max-w-xs py-3 whitespace-pre-wrap text-muted">
+                                {purchase.preference || "—"}
+                              </td>
+                              <td className="py-3">
+                                {purchase.shippingNumber ||
+                                  (purchase.kind === "product" ? "Awaiting shipping number" : "—")}
+                              </td>
                               <td className="py-3">
                                 {formatPrice(purchase.amountCents, purchase.currency)}
                               </td>
@@ -1065,13 +1089,21 @@ export default function ProfilePage() {
                                   {purchase.status}
                                 </span>
                               </td>
-                              <td className="py-3 font-mono text-xs text-muted">
-                                {purchase.id.slice(0, 8).toUpperCase()}
-                              </td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
+                      <p className="mt-4 text-sm text-muted">
+                        Customer service:{" "}
+                        <a
+                          href={TELEGRAM_URL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-semibold text-navy underline underline-offset-2"
+                        >
+                          Telegram {TELEGRAM_CONTACT}
+                        </a>
+                      </p>
                     </div>
                   )}
                 </div>

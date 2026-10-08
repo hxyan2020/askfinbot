@@ -66,6 +66,21 @@ export default function AdminDashboardPage() {
       {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
 
       <Link
+        href="/admin/orders"
+        className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-sky-200 bg-sky-50 p-5 transition hover:border-sky-400"
+      >
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900">Orders</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Read each buyer’s preference, then key in the shipping number.
+          </p>
+        </div>
+        <span className="shrink-0 rounded-full bg-sky-800 px-3 py-1.5 text-xs font-bold text-white">
+          Fulfillment
+        </span>
+      </Link>
+
+      <Link
         href="/admin/promos"
         className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-emerald-200 bg-emerald-50 p-5 transition hover:border-emerald-400"
       >

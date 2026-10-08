@@ -2,15 +2,22 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
+import { TELEGRAM_CONTACT, TELEGRAM_URL } from "@/lib/constants";
 
 type OrderStatus = {
   id: string;
+  orderNumber?: string;
   status: "pending" | "paid" | "expired" | "failed" | "refunded";
   packageName: string;
   tokens: number;
+  quantity?: number;
+  preference?: string;
+  shippingNumber?: string;
+  kind?: "membership" | "product";
   amountCents: number;
   currency: string;
   promoTier?: "percent_20" | "percent_100";
+  emailError?: string;
 };
 
 const subscribeToLocation = () => () => {};
@@ -91,6 +98,7 @@ export function CheckoutSuccess() {
   }
 
   const paid = order?.status === "paid";
+  const productOrder = order?.kind === "product";
   const unlimited =
     unlimitedTokens || isUnlimitedPromo || order?.promoTier === "percent_100";
 
@@ -105,19 +113,30 @@ export function CheckoutSuccess() {
       </span>
       <h1 className="font-display mt-5 text-3xl font-semibold text-navy">
         {paid
-          ? unlimited
+          ? unlimited && !productOrder
             ? "Unlimited access activated"
             : "Payment successful"
           : "Confirming your payment"}
       </h1>
       <p className="mt-3 text-sm leading-relaxed text-muted">
         {paid
-          ? unlimited
-            ? "Your promo unlocked unlimited AskFinBots answers for the next month. It renews automatically forever unless you cancel in My Profile."
-            : `${order.tokens} tokens have been added to your AskFinBots account. Your plan renews monthly unless cancelled in My Profile; Ask a human mentor stays unlocked for the active membership month.`
-          : "Payment confirmation is in progress. Your tokens will appear automatically once Stripe confirms the payment—please keep this page open for a moment."}
+          ? productOrder
+            ? `Order ${order.orderNumber || ""} is paid. The shipping number is added from our side and will show in Purchase history, with a confirmation email when it is assigned.`
+            : unlimited
+              ? "Your promo unlocked unlimited AskFinBots answers for the next month. It renews automatically forever unless you cancel in My Profile."
+              : `${order.tokens} tokens have been added to your AskFinBots account. Your plan renews monthly unless cancelled in My Profile; Ask a human mentor stays unlocked for the active membership month.`
+          : "Payment confirmation is in progress. This page updates automatically once Stripe confirms the payment."}
       </p>
-      {paid && (unlimited || tokenBalance !== null) && (
+      {paid && productOrder && (
+        <div className="mt-6 space-y-2 rounded-xl bg-slate-50 p-4 text-left text-sm">
+          <p><span className="text-muted">Order </span><strong>{order.orderNumber}</strong></p>
+          <p><span className="text-muted">Product </span>{order.packageName} × {order.quantity || 1}</p>
+          <p className="whitespace-pre-wrap"><span className="text-muted">Preference </span>{order.preference}</p>
+          <p><span className="text-muted">Shipping number </span>{order.shippingNumber || "Awaiting shipping number"}</p>
+          {order.emailError && <p className="text-amber-700">{order.emailError}</p>}
+        </div>
+      )}
+      {paid && !productOrder && (unlimited || tokenBalance !== null) && (
         <div className="mt-6 rounded-xl bg-slate-50 p-4">
           <p className="text-xs uppercase tracking-wide text-muted">
             {unlimited ? "Access" : "New token balance"}
@@ -134,6 +153,9 @@ export function CheckoutSuccess() {
         <Link href="/profile?tab=billing" className="btn-secondary">
           Purchase history
         </Link>
+        <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-secondary">
+          Telegram {TELEGRAM_CONTACT}
+        </a>
       </div>
     </div>
   );

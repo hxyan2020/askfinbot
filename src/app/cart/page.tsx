@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { TokenCart } from "@/components/TokenCart";
+import { OrderTestForm } from "@/components/OrderTestForm";
 import { getSessionUserIdFromCookies } from "@/lib/user-auth";
-import { findUserById } from "@/lib/users";
+import { findUserById, isPlaceholderEmail } from "@/lib/users";
 import { getPreferredCheckoutProvider } from "@/lib/payments";
 import { buildPageMetadata } from "@/lib/seo";
 
@@ -31,6 +32,10 @@ export default async function CartPage() {
             processed securely with Stripe.
           </p>
         </section>
+        <OrderTestForm
+          loggedIn={Boolean(user)}
+          needsEmail={Boolean(user && (!user.email || isPlaceholderEmail(user.email)))}
+        />
         <TokenCart
           loggedIn={Boolean(user)}
           email={user?.email}

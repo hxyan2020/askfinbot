@@ -5,8 +5,11 @@ import {
   findUserById,
   grantPromoUnlimited,
   addTokensForPurchase,
+  isPlaceholderEmail,
+  setStripeCustomerId,
 } from "@/lib/users";
 import { getTokenPackage } from "@/lib/token-packages";
+import { ORDER_TEST_PRODUCT, orderTestAmountCents } from "@/lib/shop";
 import {
   createPendingPurchase,
   markPurchasePaid,
@@ -38,6 +41,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+    if (String(body.productId || "") === ORDER_TEST_PRODUCT.id) {
+      return await startOrderTestCheckout(request, user, body);
+    }
     const tokenPackage = getTokenPackage(String(body.packageId || ""));
     if (!tokenPackage) {
       return NextResponse.json({ error: "Invalid token package." }, { status: 400 });
@@ -136,7 +142,6 @@ export async function POST(request: NextRequest) {
     });
 
     try {
-      const stripe = getStripe();
       const appUrl = getAppUrl(request.url);
       const customerOptions: Pick<
         Stripe.Checkout.SessionCreateParams,
@@ -152,7 +157,7 @@ export async function POST(request: NextRequest) {
           ? [{ coupon: await ensureStripePercentOffCoupon(20) }]
           : undefined;
 
-      const session = await stripe.checkout.sessions.create(
+      const session = await createStripeCheckoutSession(
         {
           ...customerOptions,
           mode: "subscription",
@@ -195,9 +200,9 @@ export async function POST(request: NextRequest) {
           cancel_url: `${appUrl}/cart?canceled=1`,
           billing_address_collection: "auto",
         },
-        {
-          idempotencyKey: `askfinbot-checkout-${purchase.id}`,
-        }
+        `askfinbot-checkout-${purchase.id}`,
+        userId,
+        user.email && !isPlaceholderEmail(user.email) ? user.email : undefined
       );
 
       await updatePurchase(purchase.id, {
@@ -227,3 +232,165 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+
+type Account = NonNullable<Awaited<ReturnType<typeof findUserById>>>;
+
+function deliverableEmail(user: Account, requested: unknown): string | null {
+  const typed = typeof requested === "string" ? requested.trim().toLowerCase() : "";
+  if (typed && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(typed)) return typed;
+  if (user.email && !isPlaceholderEmail(user.email)) return user.email;
+  return null;
+}
+
+async function createStripeCheckoutSession(
+  params: Stripe.Checkout.SessionCreateParams,
+  idempotencyKey: string,
+  userId: string,
+  fallbackEmail?: string
+) {
+  const stripe = getStripe();
+  try {
+    return await stripe.checkout.sessions.create(params, { idempotencyKey });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (params.customer && /no such customer/i.test(message)) {
+      await setStripeCustomerId(userId, null);
+      const { customer: _removed, ...rest } = params;
+      void _removed;
+      const email = rest.customer_email || fallbackEmail;
+      return stripe.checkout.sessions.create(
+        {
+          ...rest,
+          ...(email ? { customer_email: email } : {}),
+          ...(params.mode === "payment" && email ? { customer_creation: "always" as const } : {}),
+        },
+        { idempotencyKey: `${idempotencyKey}-fresh-customer` }
+      );
+    }
+    throw error;
+  }
+}
+
+async function startOrderTestCheckout(request: NextRequest, user: Account, body: {
+  quantity?: unknown;
+  preference?: unknown;
+  contactEmail?: unknown;
+}) {
+  if (!isStripeCheckoutReady() || getPreferredCheckoutProvider() === "none") {
+    return NextResponse.json({ error: "Secure checkout is not enabled yet." }, { status: 503 });
+  }
+
+  const preference = typeof body.preference === "string" ? body.preference.trim() : "";
+  if (preference.length < 2) {
+    return NextResponse.json(
+      { error: "Enter the preference or specification for this order." },
+      { status: 400 }
+    );
+  }
+  if (preference.length > 2000) {
+    return NextResponse.json({ error: "Preference is too long." }, { status: 400 });
+  }
+
+  let amountCents = 0;
+  let quantity = 1;
+  try {
+    quantity = Math.floor(Number(body.quantity || 1));
+    amountCents = orderTestAmountCents(quantity);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Invalid quantity.";
+    return NextResponse.json({ error: message }, { status: 400 });
+  }
+
+  const customerEmail = deliverableEmail(user, body.contactEmail);
+  if (!customerEmail) {
+    return NextResponse.json(
+      { error: "Enter an email address so we can send the order confirmation." },
+      { status: 400 }
+    );
+  }
+
+  const purchase = await createPendingPurchase({
+    userId: user.id,
+    packageId: ORDER_TEST_PRODUCT.id,
+    packageName: ORDER_TEST_PRODUCT.name,
+    tokens: 0,
+    amountCents,
+    currency: ORDER_TEST_PRODUCT.currency,
+    kind: "product",
+    quantity,
+    preference,
+    customerEmail,
+  });
+
+  try {
+    const appUrl = getAppUrl(request.url);
+    const customerOptions: Pick<Stripe.Checkout.SessionCreateParams, "customer" | "customer_email" | "customer_creation"> =
+      user.stripeCustomerId
+        ? { customer: user.stripeCustomerId }
+        : { customer_email: customerEmail, customer_creation: "always" };
+
+    const session = await createStripeCheckoutSession(
+      {
+        ...customerOptions,
+        mode: "payment",
+        client_reference_id: user.id,
+        line_items: [
+          {
+            quantity,
+            price_data: {
+              currency: ORDER_TEST_PRODUCT.currency,
+              unit_amount: ORDER_TEST_PRODUCT.priceCents,
+              product_data: {
+                name: ORDER_TEST_PRODUCT.name,
+                description: "One-time order placement test. Shipping number is added after payment.",
+              },
+            },
+          },
+        ],
+        payment_intent_data: {
+          metadata: {
+            purchaseId: purchase.id,
+            userId: user.id,
+            packageId: ORDER_TEST_PRODUCT.id,
+            orderNumber: purchase.orderNumber || "",
+          },
+          receipt_email: customerEmail,
+        },
+        metadata: {
+          purchaseId: purchase.id,
+          userId: user.id,
+          packageId: ORDER_TEST_PRODUCT.id,
+          tokens: "0",
+          orderNumber: purchase.orderNumber || "",
+          quantity: String(quantity),
+          preference: preference.replace(/\s+/g, " ").slice(0, 450),
+          expectedAmountCents: String(amountCents),
+        },
+        success_url: `${appUrl}/cart/success?order_id=${purchase.id}&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${appUrl}/cart?canceled=1`,
+        billing_address_collection: "auto",
+      },
+      `askfinbot-order-${purchase.id}`,
+      user.id,
+      customerEmail
+    );
+
+    await updatePurchase(purchase.id, {
+      stripeCheckoutSessionId: session.id,
+      stripeCustomerId: typeof session.customer === "string" ? session.customer : session.customer?.id,
+    });
+    if (!session.url) throw new Error("Stripe did not return a checkout URL.");
+    return NextResponse.json({
+      url: session.url,
+      orderId: purchase.id,
+      orderNumber: purchase.orderNumber,
+      provider: "stripe",
+      amountCents,
+    });
+  } catch (error) {
+    await updatePurchase(purchase.id, { status: "failed" });
+    const message = error instanceof Error ? error.message : "Could not start checkout.";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
